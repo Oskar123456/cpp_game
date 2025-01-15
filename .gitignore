@@ -762,3 +762,6 @@ FodyWeavers.xsd
 *.env
 
 include/raylib/*
+
+resources/images/*
+resources/textures/*
