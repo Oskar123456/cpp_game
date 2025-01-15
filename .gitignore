@@ -761,6 +761,4 @@ FodyWeavers.xsd
 
 *.env
 
-resources/aoc_data/*
-include/libc/*
-include/libcpp/*
+include/raylib/*
