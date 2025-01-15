@@ -19,7 +19,7 @@ OBJEXT      := o
 
 #Flags, Libraries and Includes
 CFLAGS      := -fopenmp -g -Wall -Wno-unused-variable -Wno-sign-compare
-LIB         := -lm -lpq -lcurl -lpcre2-8 -lgmp -lraylib
+LIB         := -lm -lraylib
 INC         := -I$(INCDIR) -I$(LIBDIR)
 INCDEP      := -I$(INCDIR)
 
