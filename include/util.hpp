@@ -2,6 +2,7 @@
 #define UTIL_HPP
 
 #include <cstdint>
+#include <time.h>
 
 typedef uint64_t u64;
 typedef uint32_t u32;
