@@ -15,14 +15,7 @@
  *=======================================*/
 
 #include "../include/util.hpp"
-
-#include <raylib.h>
-#include <rlgl.h>
-#include <raymath.h>
-
-#include <cstdio>
-#include <cmath>
-#include <string>
+#include "../include/world.hpp"
 
 #define SCR_W 800
 #define SCR_H 600
@@ -30,7 +23,7 @@
 static Font font_fira;
 
 static void DrawText3D(Font font, const char *text, Vector3 position, float fontSize, float fontSpacing, float lineSpacing, bool backface, Color tint);
-static void DrawTextCodepoint3D(Font font, int codepoint, Vector3 position, float fontSize, bool backface, Color tint);
+static void DrawTextCodepoint3D(Font font, int codepoint, Vector3 position, Vector3 text_position, float fontSize, bool backface, Color tint);
 
 struct Unit {
     Vector3 pos;
@@ -50,22 +43,22 @@ void unit_update(Unit* u)
 {
     float ms = (IsKeyDown(KEY_LEFT_SHIFT)) ? u->ms_sprnt : u->ms_norm;
 
-    if (IsKeyDown(KEY_UP)) {
+    if (IsKeyDown(KEY_UP) || IsKeyDown(KEY_W)) {
         u->pos.x += ms;
         u->pos.z += ms;
     }
 
-    if (IsKeyDown(KEY_DOWN)) {
+    if (IsKeyDown(KEY_DOWN) || IsKeyDown(KEY_S)) {
         u->pos.x -= ms;
         u->pos.z -= ms;
     }
 
-    if (IsKeyDown(KEY_LEFT)) {
+    if (IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_A)) {
         u->pos.x += ms;
         u->pos.z -= ms;
     }
 
-    if (IsKeyDown(KEY_RIGHT)) {
+    if (IsKeyDown(KEY_RIGHT) || IsKeyDown(KEY_D)) {
         u->pos.x -= ms;
         u->pos.z += ms;
     }
@@ -165,6 +158,19 @@ int main(int argc, char *argv[])
                 DrawPlane({player.pos.x, player.pos.y - 0.51f, player.pos.z}, {100, 100}, GRAY);
                 DrawCubeWires(player.pos, 1, 1, 1, GREEN);
                 draw_axes(player.pos, 2);
+
+                /* mat4s model = GLMS_MAT4_IDENTITY; */
+                /* model = glms_translate(model, (vec3s){4.0f, -3.5f, 0.0}); */
+                /* model = glms_scale(model, (vec3s){0.5f, 0.5f, 0.5f}); */
+                /* shader.setMat4("model", model); */
+                rlPushMatrix();
+                rlBegin(RL_QUADS);
+                    rlTranslatef(0.0f, 3.5f, 0.0);
+                    rlScalef(5.5f, 5.5f, 5.5f);
+                    rlColor3f(1.0f, 0.0f, 0.0f);
+                    world_render_cube();
+                rlEnd();
+                rlPopMatrix();
 
             EndMode3D();
 
