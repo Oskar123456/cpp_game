@@ -1,10 +1,8 @@
-#version 330
+#version 330 core
 
-uniform vec4 uni_col;
-
-out vec4 out_col;
+out vec4 FragColor;
 
 void main()
 {
-    out_col = uni_col;
+   FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);
 }

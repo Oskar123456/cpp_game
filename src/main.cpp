@@ -62,10 +62,10 @@ struct MetaData metadata[] =
     { SDL_PROP_APP_METADATA_TYPE_STRING, "game" }
 };
 
-float vs[][3] = {
-    {0, 0, 0},
-    {0.5, 0.5, 0.5},
-    {-0.5, -0.5, -0.5},
+float vs[] = {
+    -0.5f, -0.5f, 0.0f,
+     0.5f, -0.5f, 0.0f,
+     0.0f,  0.5f, 0.0f,
 };
 
 u32 vao, vbo, ebo, sp;
@@ -119,9 +119,16 @@ SDL_AppResult SDL_AppInit(void **state, int argc, char *argv[])
         return SDL_APP_FAILURE;
     }
 
+    glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
+
     glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vs), vs, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+
+    glBindVertexArray(0);
 
     sp = util_shader_load("shaders/simp.vs", "shaders/simp.fs");
 
@@ -134,6 +141,11 @@ SDL_AppResult SDL_AppIterate(void *state)
 
     glClearColor(1,1,1,1);
     glClear(GL_COLOR_BUFFER_BIT);
+
+    glUseProgram(sp);
+    glBindVertexArray(vao);
+    glDrawArrays(GL_TRIANGLES, 0, 3);
+
     SDL_GL_SwapWindow(as->window);
 
     return SDL_APP_CONTINUE;

@@ -20,8 +20,6 @@
 u32 util_shader_load(const char* path_vs, const char* path_fs)
 {
     u32 sp;
-    u32 vs = glCreateShader(GL_VERTEX_SHADER);
-    u32 fs = glCreateShader(GL_FRAGMENT_SHADER);
 
     FILE *vs_f = fopen(path_vs, "r");
     FILE *fs_f = fopen(path_fs, "r");
@@ -38,29 +36,28 @@ u32 util_shader_load(const char* path_vs, const char* path_fs)
     u32 fs_f_sz = ftell(fs_f);
     fseek(fs_f, 0, SEEK_SET);
 
-    char *vs_buf = (char*)malloc(vs_f_sz);
-    char *fs_buf = (char*)malloc(fs_f_sz);
-
+    u32 vs = glCreateShader(GL_VERTEX_SHADER);
+    char *vs_buf = (char*)calloc(vs_f_sz + 1, 1);
     fread(vs_buf, 1, vs_f_sz, vs_f);
-    fread(fs_buf, 1, fs_f_sz, fs_f);
-
     glShaderSource(vs, 1, &vs_buf, NULL);
-    glShaderSource(fs, 1, &fs_buf, NULL);
-
     glCompileShader(vs);
-    glCompileShader(fs);
-
-    int err;
-    char err_buf[512];
-    glGetShaderiv(vs, GL_COMPILE_STATUS, &err);
-    if (err) {
-        glGetShaderInfoLog(vs, 512, NULL, err_buf);
-        printf("%s\n", err_buf);
+    int comp_status;
+    char comp_status_buf[512];
+    glGetShaderiv(vs, GL_COMPILE_STATUS, &comp_status);
+    if (!comp_status) {
+        glGetShaderInfoLog(vs, 512, NULL, comp_status_buf);
+        printf("err compiling vertex shader: %s\n", comp_status_buf);
     }
-    glGetShaderiv(fs, GL_COMPILE_STATUS, &err);
-    if (err) {
-        glGetShaderInfoLog(fs, 512, NULL, err_buf);
-        printf("%s\n", err_buf);
+
+    u32 fs = glCreateShader(GL_FRAGMENT_SHADER);
+    char *fs_buf = (char*)calloc(vs_f_sz + 1, 1);
+    fread(fs_buf, 1, fs_f_sz, fs_f);
+    glShaderSource(fs, 1, &fs_buf, NULL);
+    glCompileShader(fs);
+    glGetShaderiv(fs, GL_COMPILE_STATUS, &comp_status);
+    if (!comp_status) {
+        glGetShaderInfoLog(fs, 512, NULL, comp_status_buf);
+        printf("err compiling fragment shader: %s\n", comp_status_buf);
     }
 
     sp = glCreateProgram();
@@ -68,10 +65,10 @@ u32 util_shader_load(const char* path_vs, const char* path_fs)
     glAttachShader(sp, fs);
     glLinkProgram(sp);
 
-    glGetProgramiv(sp, GL_LINK_STATUS, &err);
-    if (err) {
-        glGetShaderInfoLog(fs, 512, NULL, err_buf);
-        printf("%s\n", err_buf);
+    glGetProgramiv(sp, GL_LINK_STATUS, &comp_status);
+    if (!comp_status) {
+        glGetShaderInfoLog(fs, 512, NULL, comp_status_buf);
+        printf("err linking shader program: %s\n", comp_status_buf);
     }
 
     fclose(vs_f);
