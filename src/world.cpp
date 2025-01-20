@@ -14,9 +14,7 @@
  *
  *=======================================*/
 
-#include "../include/util.hpp"
 #include "../include/world.hpp"
-#include "../include/glad/glad.h"
 
 void world_print_info()
 {
