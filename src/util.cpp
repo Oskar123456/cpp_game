@@ -50,7 +50,7 @@ u32 util_shader_load(const char* path_vs, const char* path_fs)
     }
 
     u32 fs = glCreateShader(GL_FRAGMENT_SHADER);
-    char *fs_buf = (char*)calloc(vs_f_sz + 1, 1);
+    char *fs_buf = (char*)calloc(fs_f_sz + 1, 1);
     fread(fs_buf, 1, fs_f_sz, fs_f);
     glShaderSource(fs, 1, &fs_buf, NULL);
     glCompileShader(fs);

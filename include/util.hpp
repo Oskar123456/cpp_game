@@ -12,10 +12,6 @@
 #include <time.h>
 #endif
 
-#define CGLM_USE_ANONYMOUS_STRUCT 1
-#define CGLM_OMIT_NS_FROM_STRUCT_API 1
-#include "cglm/struct.h"
-
 typedef uint64_t u64;
 typedef uint32_t u32;
 typedef uint16_t u16;

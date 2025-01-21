@@ -19,9 +19,10 @@
 #define SDL_MAIN_USE_CALLBACKS 1
 #include <SDL3/SDL_main.h>
 
-#include "../include/glad/glad.h"
-#include "../include/util.hpp"
-#include "../include/world.hpp"
+#include <glad/glad.h>
+#include <util.hpp>
+#include <world.hpp>
+#include <twod.hpp>
 
 #define WINDOW_WIDTH   800
 #define WINDOW_HEIGHT  600
@@ -148,6 +149,8 @@ SDL_AppResult SDL_AppInit(void **state, int argc, char *argv[])
 
     SDL_GetCurrentTime(&t_last_update);
 
+    twod_init();
+
     return SDL_APP_CONTINUE;
 }
 
@@ -169,9 +172,7 @@ SDL_AppResult SDL_AppIterate(void *state)
     glClearColor(1,1,1,1);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    glUseProgram(sp);
-    glBindVertexArray(vao);
-    glDrawArrays(GL_TRIANGLES, 0, 3);
+    twod_draw_rectf(0, 0, 1, 1, {1, 0, 0, 1});
 
     SDL_GL_SwapWindow(as->window);
 
