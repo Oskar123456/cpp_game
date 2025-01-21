@@ -11,11 +11,11 @@
  *
  *
  *
- *
  *=======================================*/
 
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_video.h>
+#include <SDL3/SDL_time.h>
 #define SDL_MAIN_USE_CALLBACKS 1
 #include <SDL3/SDL_main.h>
 
@@ -27,6 +27,25 @@
 #define WINDOW_HEIGHT  600
 
 using namespace std;
+
+/* TEMP */
+/* TEMP */
+/* TEMP */
+static SDL_Time t_last_update, t_now, t_delta;
+
+static SDL_Time t_hist[60];
+static int t_hist_idx;
+
+float vs[] = {
+    -0.5f, -0.5f, 0.0f,
+     0.5f, -0.5f, 0.0f,
+     0.0f,  0.5f, 0.0f,
+};
+
+u32 vao, vbo, ebo, sp;
+/* TEMP */
+/* TEMP */
+/* TEMP */
 
 struct MetaData
 {
@@ -41,15 +60,18 @@ struct AppState {
 
 struct AppState app_state;
 
-SDL_AppResult handle_key_event(SDL_KeyboardEvent kb_event)
+SDL_AppResult key_callback(SDL_KeyboardEvent kb_event)
 {
     switch (kb_event.scancode) {
-    case SDL_SCANCODE_ESCAPE:
-    case SDL_SCANCODE_Q:
-        return SDL_APP_CONTINUE;
-
-    default:
-        break;
+        case SDL_SCANCODE_F11:
+            SDL_SetWindowFullscreen(app_state.window, !(SDL_GetWindowFlags(app_state.window) & SDL_WINDOW_FULLSCREEN));
+            break;
+        case SDL_SCANCODE_ESCAPE:
+        case SDL_SCANCODE_Q:
+            return SDL_APP_CONTINUE;
+            break;
+        default:
+            break;
     }
     return SDL_APP_CONTINUE;
 }
@@ -61,14 +83,6 @@ struct MetaData metadata[] =
     { SDL_PROP_APP_METADATA_COPYRIGHT_STRING, "Placed in the public domain" },
     { SDL_PROP_APP_METADATA_TYPE_STRING, "game" }
 };
-
-float vs[] = {
-    -0.5f, -0.5f, 0.0f,
-     0.5f, -0.5f, 0.0f,
-     0.0f,  0.5f, 0.0f,
-};
-
-u32 vao, vbo, ebo, sp;
 
 SDL_AppResult SDL_AppInit(void **state, int argc, char *argv[])
 {
@@ -94,7 +108,7 @@ SDL_AppResult SDL_AppInit(void **state, int argc, char *argv[])
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
     SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
 
-    Uint32 window_flags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN;
+    Uint32 window_flags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE;// | SDL_WINDOW_HIDDEN;
     as->window = SDL_CreateWindow("Cube Render", WINDOW_WIDTH, WINDOW_HEIGHT, window_flags);
     if (as->window == NULL)
     {
@@ -111,7 +125,7 @@ SDL_AppResult SDL_AppInit(void **state, int argc, char *argv[])
 
     SDL_GL_MakeCurrent(as->window, as->gl_context);
     SDL_GL_SetSwapInterval(1); /* vsync */
-    SDL_ShowWindow(as->window);
+    /* SDL_ShowWindow(as->window); */
 
     if (!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress))
     {
@@ -132,12 +146,25 @@ SDL_AppResult SDL_AppInit(void **state, int argc, char *argv[])
 
     sp = util_shader_load("shaders/simp.vs", "shaders/simp.fs");
 
+    SDL_GetCurrentTime(&t_last_update);
+
     return SDL_APP_CONTINUE;
 }
 
 SDL_AppResult SDL_AppIterate(void *state)
 {
     AppState *as = (AppState*)state;
+
+    SDL_GetCurrentTime(&t_now);
+    t_delta = t_now - t_last_update;
+    t_last_update = t_now;
+    t_hist[t_hist_idx++ % 60] = t_delta;
+    SDL_Time t_avg = 0;
+    for (int i = 0; i < 60; ++i)
+        t_avg += t_hist[i];
+    t_avg /= 60;
+
+    printf("ft: %lums (avg. ft: %lums)\n", t_delta / 1000000, t_avg / 1000000);
 
     glClearColor(1,1,1,1);
     glClear(GL_COLOR_BUFFER_BIT);
@@ -159,7 +186,7 @@ SDL_AppResult SDL_AppEvent(void *app_state, SDL_Event *event)
     SDL_AppResult res;
 
     if (event->type == SDL_EVENT_KEY_DOWN)
-        if ((res = handle_key_event(event->key)))
+        if ((res = key_callback(event->key)))
             return res;
 
     return SDL_APP_CONTINUE;

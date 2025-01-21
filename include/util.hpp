@@ -14,7 +14,7 @@
 
 #define CGLM_USE_ANONYMOUS_STRUCT 1
 #define CGLM_OMIT_NS_FROM_STRUCT_API 1
-#include "../include/cglm/include/cglm/struct.h"
+#include "cglm/struct.h"
 
 typedef uint64_t u64;
 typedef uint32_t u32;
