@@ -47,6 +47,18 @@ void twod_update_scr_dims(i32 w, i32 h)
     scr_h = h;
 }
 
+void _map_pixel_ndc_dims(float* w, float* h)
+{
+    *w = (*w / scr_w) * 2.0;
+    *h = (*h / scr_h) * 2.0;
+}
+
+void _map_pixel_ndc_coords(float* x, float* y)
+{
+    *x = (*x / scr_w) * 2.0f - 1.0f;
+    *y = (*y / scr_h) * 2.0f - 1.0f;
+}
+
 void twod_init()
 {
     /* vertex data */
@@ -76,11 +88,8 @@ void twod_init()
 
 void twod_draw_rectf(float x, float y, float w, float h, Color c)
 {
-    w = (w / scr_w);
-    h = (h / scr_h);
-
-    x = (x / scr_w) * 2.0f;
-    y = (y / scr_h) * 2.0f;
+    _map_pixel_ndc_dims(&w, &h);
+    _map_pixel_ndc_coords(&x, &y);
 
     mat4s modl = GLMS_MAT4_IDENTITY;
     /* modl = glms_scale(modl, {w, h, 1}); */
@@ -89,10 +98,11 @@ void twod_draw_rectf(float x, float y, float w, float h, Color c)
     vec3s vs[6];
     memcpy(vs, vs_rect, sizeof(float) * 18);
     for (int i = 0; i < 6; ++i) {
-        vs[i].x *= w * 1.0f;
-        vs[i].x += x - 1.0f;
-        vs[i].y *= h * 1.0f;
-        vs[i].y += y - 1.0f;
+        vs[i].x *= w;
+        vs[i].x += x;
+        vs[i].y *= h;
+        vs[i].y += y;
+        vs[i].y *= -1;
         /* glms_vec3_print(vs[i], stdout); */
     }
 

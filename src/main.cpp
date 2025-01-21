@@ -37,7 +37,7 @@ static SDL_Time t_last_update, t_now, t_delta;
 static SDL_Time t_hist[60];
 static int t_hist_idx;
 
-static vec4s rect = {100, 100, 100, 100};
+static vec4s rect = {100, 100, 600, 400};
 /* TEMP */
 /* TEMP */
 /* TEMP */
@@ -57,7 +57,7 @@ struct AppState app_state;
 
 SDL_AppResult key_callback(SDL_KeyboardEvent kb_event)
 {
-    int ms = 60;
+    int ms = 15;
     switch (kb_event.scancode) {
         case SDL_SCANCODE_F11:
             SDL_SetWindowFullscreen(app_state.window, !(SDL_GetWindowFlags(app_state.window) & SDL_WINDOW_FULLSCREEN));
@@ -67,10 +67,10 @@ SDL_AppResult key_callback(SDL_KeyboardEvent kb_event)
             return SDL_APP_CONTINUE;
             break;
         case SDL_SCANCODE_UP:
-            rect.y = fmax(0, rect.y + ms);
+            rect.y = fmax(0, rect.y - ms);
             break;
         case SDL_SCANCODE_DOWN:
-            rect.y = fmax(0, rect.y - ms);
+            rect.y = fmax(0, rect.y + ms);
             break;
         case SDL_SCANCODE_LEFT:
             rect.x = fmax(0, rect.x - ms);
@@ -89,10 +89,11 @@ SDL_AppResult key_callback(SDL_KeyboardEvent kb_event)
 
 struct MetaData metadata[] =
 {
-    { SDL_PROP_APP_METADATA_URL_STRING, "https://examples.libsdl.org/SDL3/demo/01-snake/" },
-    { SDL_PROP_APP_METADATA_CREATOR_STRING, "SDL team" },
-    { SDL_PROP_APP_METADATA_COPYRIGHT_STRING, "Placed in the public domain" },
-    { SDL_PROP_APP_METADATA_TYPE_STRING, "game" }
+    { SDL_PROP_APP_METADATA_NAME_STRING, "LOL" },
+    { SDL_PROP_APP_METADATA_URL_STRING, "LOL" },
+    { SDL_PROP_APP_METADATA_CREATOR_STRING, "LOL" },
+    { SDL_PROP_APP_METADATA_COPYRIGHT_STRING, "LOL" },
+    { SDL_PROP_APP_METADATA_TYPE_STRING, "LOL" }
 };
 
 SDL_AppResult SDL_AppInit(void **state, int argc, char *argv[])
@@ -168,11 +169,11 @@ SDL_AppResult SDL_AppIterate(void *state)
     t_avg /= 60;
 
     /* printf("ft: %lums (avg. ft: %lums)\n", t_delta / 1000000, t_avg / 1000000); */
-
-    glClearColor(1,1,1,1);
+    Color bg = COL_TOKYO;
+    glClearColor(VEC4EXP(bg));
     glClear(GL_COLOR_BUFFER_BIT);
 
-    twod_draw_rectf(rect.x, rect.y, rect.z, rect.w, {1, 0, 0, 1});
+    twod_draw_rectf(rect.x, rect.y, rect.z, rect.w, COL_PINK);
 
     SDL_GL_SwapWindow(as->window);
 
@@ -192,7 +193,7 @@ SDL_AppResult SDL_AppEvent(void *state, SDL_Event *event)
         SDL_GetWindowSizeInPixels(as->window, &w, &h);
         twod_update_scr_dims(w, h);
         glViewport(0, 0, w, h);
-        printf("%d %d\n", w, h);
+        /* printf("%d %d\n", w, h); */
     }
 
     if (event->type == SDL_EVENT_KEY_DOWN)
