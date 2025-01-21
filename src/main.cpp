@@ -37,13 +37,7 @@ static SDL_Time t_last_update, t_now, t_delta;
 static SDL_Time t_hist[60];
 static int t_hist_idx;
 
-float vs[] = {
-    -0.5f, -0.5f, 0.0f,
-     0.5f, -0.5f, 0.0f,
-     0.0f,  0.5f, 0.0f,
-};
-
-u32 vao, vbo, ebo, sp;
+static vec4s rect = {100, 100, 100, 100};
 /* TEMP */
 /* TEMP */
 /* TEMP */
@@ -63,6 +57,7 @@ struct AppState app_state;
 
 SDL_AppResult key_callback(SDL_KeyboardEvent kb_event)
 {
+    int ms = 60;
     switch (kb_event.scancode) {
         case SDL_SCANCODE_F11:
             SDL_SetWindowFullscreen(app_state.window, !(SDL_GetWindowFlags(app_state.window) & SDL_WINDOW_FULLSCREEN));
@@ -70,6 +65,21 @@ SDL_AppResult key_callback(SDL_KeyboardEvent kb_event)
         case SDL_SCANCODE_ESCAPE:
         case SDL_SCANCODE_Q:
             return SDL_APP_CONTINUE;
+            break;
+        case SDL_SCANCODE_UP:
+            rect.y = fmax(0, rect.y + ms);
+            break;
+        case SDL_SCANCODE_DOWN:
+            rect.y = fmax(0, rect.y - ms);
+            break;
+        case SDL_SCANCODE_LEFT:
+            rect.x = fmax(0, rect.x - ms);
+            break;
+        case SDL_SCANCODE_RIGHT:
+            rect.x = fmax(0, rect.x + ms);
+            break;
+        case SDL_SCANCODE_P:
+            glms_vec4_print(rect, stdout);
             break;
         default:
             break;
@@ -134,21 +144,11 @@ SDL_AppResult SDL_AppInit(void **state, int argc, char *argv[])
         return SDL_APP_FAILURE;
     }
 
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
-
-    glGenBuffers(1, &vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vs), vs, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-
-    glBindVertexArray(0);
-
-    sp = util_shader_load("shaders/simp.vs", "shaders/simp.fs");
-
     SDL_GetCurrentTime(&t_last_update);
 
+    int w, h;
+    SDL_GetWindowSizeInPixels(as->window, &w, &h);
+    twod_update_scr_dims(w, h);
     twod_init();
 
     return SDL_APP_CONTINUE;
@@ -167,24 +167,33 @@ SDL_AppResult SDL_AppIterate(void *state)
         t_avg += t_hist[i];
     t_avg /= 60;
 
-    printf("ft: %lums (avg. ft: %lums)\n", t_delta / 1000000, t_avg / 1000000);
+    /* printf("ft: %lums (avg. ft: %lums)\n", t_delta / 1000000, t_avg / 1000000); */
 
     glClearColor(1,1,1,1);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    twod_draw_rectf(0, 0, 1, 1, {1, 0, 0, 1});
+    twod_draw_rectf(rect.x, rect.y, rect.z, rect.w, {1, 0, 0, 1});
 
     SDL_GL_SwapWindow(as->window);
 
     return SDL_APP_CONTINUE;
 }
 
-SDL_AppResult SDL_AppEvent(void *app_state, SDL_Event *event)
+SDL_AppResult SDL_AppEvent(void *state, SDL_Event *event)
 {
+    SDL_AppResult res;
+    AppState *as = (AppState*)state;
+
     if (event->type == SDL_EVENT_QUIT)
         return SDL_APP_SUCCESS;
 
-    SDL_AppResult res;
+    if (event->type == SDL_EVENT_WINDOW_RESIZED) {
+        int w, h;
+        SDL_GetWindowSizeInPixels(as->window, &w, &h);
+        twod_update_scr_dims(w, h);
+        glViewport(0, 0, w, h);
+        printf("%d %d\n", w, h);
+    }
 
     if (event->type == SDL_EVENT_KEY_DOWN)
         if ((res = key_callback(event->key)))
