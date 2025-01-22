@@ -19,7 +19,7 @@ OBJEXT      := o
 
 #Flags, Libraries and Includes
 CFLAGS      := -fopenmp -g -Wall -Wno-unused-variable -Wno-sign-compare
-LIB         := -lm -lSDL3 -lSDL3_mixer -lSDL3_ttf
+LIB         := -lm -lSDL3 -lSDL3_mixer $(shell pwd)/build/libSDL3_ttf.so.0
 INC         := -I$(INCDIR) -I$(LIBDIR)
 INCDEP      := -I$(INCDIR)
 
@@ -37,7 +37,7 @@ export
 all: resources $(TARGET)
 
 run: resources $(TARGET)
-	cd $(TARGETDIR) && ./$(TARGET)
+	cd $(TARGETDIR) && LD_PRELOAD=$(shell pwd)/build/libSDL3_ttf.so.0 ./$(TARGET)
 
 #Remake
 remake: cleaner all

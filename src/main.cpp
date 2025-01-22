@@ -24,8 +24,8 @@
 #include <world.hpp>
 #include <twod.hpp>
 
-#define WINDOW_WIDTH   800
-#define WINDOW_HEIGHT  600
+#define WINDOW_WIDTH   1000
+#define WINDOW_HEIGHT  800
 
 using namespace std;
 
@@ -37,7 +37,10 @@ static SDL_Time t_last_update, t_now, t_delta;
 static SDL_Time t_hist[60];
 static int t_hist_idx;
 
-static vec4s rect = {100, 100, 600, 400};
+static vec4s rect = {100, 100, 10, 10};
+static bool paused;
+
+static bool exit_first = true;
 /* TEMP */
 /* TEMP */
 /* TEMP */
@@ -55,31 +58,49 @@ struct AppState {
 
 struct AppState app_state;
 
+void key_poll()
+{
+    int n;
+    const bool *kcs = SDL_GetKeyboardState(&n);
+
+    int ms = 4;
+    if (kcs[SDL_SCANCODE_UP]) {
+        rect.y = fmax(0, rect.y - ms);
+    }
+    if (kcs[SDL_SCANCODE_DOWN]) {
+        rect.y = fmax(0, rect.y + ms);
+    }
+    if (kcs[SDL_SCANCODE_LEFT]) {
+        rect.x = fmax(0, rect.x - ms);
+    }
+    if (kcs[SDL_SCANCODE_RIGHT]) {
+        rect.x = fmax(0, rect.x + ms);
+    }
+}
+
 SDL_AppResult key_callback(SDL_KeyboardEvent kb_event)
 {
-    int ms = 15;
+    if (kb_event.scancode != SDL_SCANCODE_ESCAPE)
+        exit_first = false;
     switch (kb_event.scancode) {
         case SDL_SCANCODE_F11:
             SDL_SetWindowFullscreen(app_state.window, !(SDL_GetWindowFlags(app_state.window) & SDL_WINDOW_FULLSCREEN));
             break;
         case SDL_SCANCODE_ESCAPE:
-        case SDL_SCANCODE_Q:
-            return SDL_APP_CONTINUE;
-            break;
-        case SDL_SCANCODE_UP:
-            rect.y = fmax(0, rect.y - ms);
-            break;
-        case SDL_SCANCODE_DOWN:
-            rect.y = fmax(0, rect.y + ms);
-            break;
-        case SDL_SCANCODE_LEFT:
-            rect.x = fmax(0, rect.x - ms);
-            break;
-        case SDL_SCANCODE_RIGHT:
-            rect.x = fmax(0, rect.x + ms);
+            /* printf("esc down\n"); */
+            if (!exit_first)
+                return SDL_APP_SUCCESS;
             break;
         case SDL_SCANCODE_P:
             glms_vec4_print(rect, stdout);
+            break;
+        case SDL_SCANCODE_PAGEUP:
+            break;
+        case SDL_SCANCODE_PAGEDOWN:
+            break;
+        case SDL_SCANCODE_SPACE:
+            paused = !paused;
+            printf("%s\n", (paused) ? "paused" : "unpaused");
             break;
         default:
             break;
@@ -101,7 +122,13 @@ SDL_AppResult SDL_AppInit(void **state, int argc, char *argv[])
     *state = (void*)&app_state;
     AppState *as = (AppState*)*state;
 
-    SDL_InitSubSystem(SDL_INIT_VIDEO);
+    if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO)){
+        return SDL_APP_FAILURE;
+    }
+
+    if (!TTF_Init()) {
+        return SDL_APP_FAILURE;
+    }
 
     bool gl_loaded = SDL_GL_LoadLibrary(NULL);
     if (!gl_loaded)
@@ -152,6 +179,8 @@ SDL_AppResult SDL_AppInit(void **state, int argc, char *argv[])
     twod_update_scr_dims(w, h);
     twod_init();
 
+    /* text */
+
     return SDL_APP_CONTINUE;
 }
 
@@ -168,12 +197,19 @@ SDL_AppResult SDL_AppIterate(void *state)
         t_avg += t_hist[i];
     t_avg /= 60;
 
-    /* printf("ft: %lums (avg. ft: %lums)\n", t_delta / 1000000, t_avg / 1000000); */
-    Color bg = COL_TOKYO;
-    glClearColor(VEC4EXP(bg));
-    glClear(GL_COLOR_BUFFER_BIT);
+    key_poll();
 
-    twod_draw_rectf(rect.x, rect.y, rect.z, rect.w, COL_PINK);
+    /* printf("ft: %lums (avg. ft: %lums)\n", t_delta / 1000000, t_avg / 1000000); */
+
+    if (!paused)
+    {
+        Color bg = COL_TOKYO;
+        glClearColor(VEC4EXP(bg));
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        twod_draw_circlef(400, 400, 50, COL_PINK);
+        twod_draw_rectf(rect.x, rect.y, rect.z, rect.w, COL_WHITE);
+    }
 
     SDL_GL_SwapWindow(as->window);
 
