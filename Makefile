@@ -39,6 +39,9 @@ all: resources $(TARGET)
 run: resources $(TARGET)
 	cd $(TARGETDIR) && LD_PRELOAD=$(shell pwd)/build/libSDL3_ttf.so.0 ./$(TARGET)
 
+run_only:
+	cd $(TARGETDIR) && LD_PRELOAD=$(shell pwd)/build/libSDL3_ttf.so.0 ./$(TARGET)
+
 #Remake
 remake: cleaner all
 

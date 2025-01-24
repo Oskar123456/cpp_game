@@ -21,7 +21,6 @@
 #include <cglm/struct.h>
 #include <glad/glad.h>
 #include <SDL3/SDL.h>
-#include <SDL3_ttf/SDL_ttf.h>
 #include <util.hpp>
 
 #define VEC4EXP(v) (v).x, (v).y, (v).z, (v).w
@@ -33,10 +32,15 @@ void twod_update_scr_dims(i32 w, i32 h);
 void twod_draw_rectf(float x, float y, float w, float h, Color c);
 void twod_draw_rectv(vec2s a, float w, float h, Color c);
 void twod_draw_circlef(float x, float y, float r, Color c);
-void twod_draw_text(float x, float y, float sz, Color c);
+void twod_draw_text(const char* txt, float x, float y, float sz, Color c, float angle);
+void twod_draw_rectf_tex(float x, float y, float w, float h, Color c, const char* tex, float angle);
+void twod_draw_rectf_tex_rot(float x, float y, float w, float h, Color c, const char* tex, float angle);
+u32 twod_create_tex(const char* img_path, const char* alias);
+u32 twod_create_tex_a(const char* img_path, const char* alias);
 
 #define COL_TOKYO {0x1A / 255.0f, 0x1B / 255.0f, 0x26 / 255.0f, 1.0f}
 #define COL_PINK {0xFF / 255.0f, 0x00 / 255.0f, 0x7F / 255.0f, 1.0f}
 #define COL_WHITE {0xFF / 255.0f, 0xFF / 255.0f, 0xFF / 255.0f, 1.0f}
+#define COL_BLACK {0x16 / 255.0f, 0x16 / 255.0f, 0x16 / 255.0f, 1.0f}
 
 #endif

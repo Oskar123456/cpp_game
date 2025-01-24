@@ -14,8 +14,13 @@
  *=======================================*/
 
 #include "../include/twod.hpp"
+#include "logging.hpp"
+#include "../external/SDL_ttf/include/SDL3_ttf/SDL_ttf.h"
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb/stb_image.h"
+#include <map>
 
-#include <unistd.h>
+using namespace std;
 
 /* screen dims*/
 static i32 scr_w;
@@ -24,23 +29,59 @@ static i32 scr_h;
 static u32 shdr_simp;
 static u32 shdr_simp_loc_col;
 static u32 shdr_simp_loc_modl;
+
+static u32 shdr_tex;
+static u32 shdr_tex_loc_modl;
+
+static u32 shdr_simp_circ;
+static u32 shdr_simp_circ_loc_col;
+static u32 shdr_simp_circ_loc_r;
+static u32 shdr_simp_circ_loc_c;
+static u32 shdr_simp_circ_loc_cr;
+static u32 shdr_simp_circ_loc_modl;
+static u32 shdr_simp_circ_loc_asp;
+/* textures */
+static map<string, u32> _twod_tex_map;
 /* vertex data */
 static u32 vao_rect;
+static u32 vao_text;
 static u32 vao_circ;
 
-u32 vbo_rect;
-u32 vbo_circ;
-/* text */
-TTF_Font *font_default;
+static u32 vbo_rect;
+static u32 vbo_text;
+static u32 vbo_circ;
 
 static float vs_rect[] = {
-     0.0,  0.0, 0.0,
-     0.0,  1.0, 0.0,
-     1.0,  1.0, 0.0,
+/*    ndc-coords       tex-coords */
+     -0.5, -0.5, -0.5, 0.0, 0.0,
+     -0.5,  0.5, -0.5, 0.0, 1.0,
+      0.5,  0.5, -0.5, 1.0, 1.0,
 
-     1.0,  1.0, 0.0,
-     0.0,  0.0, 0.0,
-     1.0,  0.0, 0.0,
+      0.5,  0.5, -0.5, 1.0, 1.0,
+     -0.5, -0.5, -0.5, 0.0, 0.0,
+      0.5, -0.5, -0.5, 1.0, 0.0,
+};
+
+static float vs_text[] = {
+/*    ndc-coords       tex-coords */
+     -0.5, -0.5, -0.5, 0.0, 0.0,
+     -0.5,  0.5, -0.5, 0.0, 1.0,
+      0.5,  0.5, -0.5, 1.0, 1.0,
+
+      0.5,  0.5, -0.5, 1.0, 1.0,
+     -0.5, -0.5, -0.5, 0.0, 0.0,
+      0.5, -0.5, -0.5, 1.0, 0.0,
+};
+
+static float vs_circ[] = {
+/*    ndc-coords       tex-coords */
+     -1.0, -1.0, -1.0, 0.0, 0.0,
+     -1.0,  1.0, -1.0, 0.0, 1.0,
+      1.0,  1.0, -1.0, 1.0, 1.0,
+
+      1.0,  1.0, -1.0, 1.0, 1.0,
+     -1.0, -1.0, -1.0, 0.0, 0.0,
+      1.0, -1.0, -1.0, 1.0, 0.0,
 };
 
 float vs_tri[] = {
@@ -49,15 +90,8 @@ float vs_tri[] = {
      0.0f,  0.5f, 0.0f,
 };
 
-static float vs_circ[] = {
-     0.0,  0.0, 0.0,
-     0.0,  1.0, 0.0,
-     1.0,  1.0, 0.0,
-
-     1.0,  1.0, 0.0,
-     0.0,  0.0, 0.0,
-     1.0,  0.0, 0.0,
-};
+/* text */
+TTF_Font *font_default;
 
 void twod_update_scr_dims(i32 w, i32 h)
 {
@@ -84,15 +118,25 @@ void _twod_map_pixel_ndc_coords(float* x, float* y)
 /**
  * Coordinates and scale in screen pixels.
  */
-void _twod_transf_verts(vec3s *vs, int sz, float x, float y, float w, float h)
+void _twod_transf_verts(float *vs, int vs_w, int vs_h, float x, float y, float w, float h)
 {
     _twod_map_pixel_ndc_coords(&x, &y);
     _twod_map_pixel_ndc_dims(&w, &h);
 
-    for (int i = 0; i < sz; ++i) {
-        vs[i].x = vs[i].x * w + x;
-        vs[i].y = (vs[i].y * h + y);
-        /* glms_vec3_print(vs[i], stdout); */
+    for (int i = 0; i < vs_h; ++i) {
+        vs[i * vs_w]     = vs[i * vs_w] * w + x;
+        vs[i * vs_w + 1] = vs[i * vs_w + 1] * h + y;
+    }
+}
+
+void _twod_rot_rect(float *vs, int vs_w, int vs_h, float angle)
+{
+    for (int i = 0; i < vs_h; ++i) {
+        vec3s v = {vs[i * vs_w], vs[i * vs_w + 1], vs[i * vs_w + 2]};
+        v = vec3_rotate(v, angle, {0, 0, 1});
+        vs[i * vs_w] = v.x;
+        vs[i * vs_w + 1] = v.y;
+        vs[i * vs_w + 2] = v.z;
     }
 }
 
@@ -105,8 +149,22 @@ void twod_init()
     glBindVertexArray(vao_rect);
     glBindBuffer(GL_ARRAY_BUFFER, vbo_rect);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vs_rect), vs_rect, GL_DYNAMIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
+    glBindVertexArray(0);
+
+    glGenVertexArrays(1, &vao_text);
+    glGenBuffers(1, &vbo_text);
+
+    glBindVertexArray(vao_text);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo_text);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vs_text), vs_text, GL_DYNAMIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
     glBindVertexArray(0);
 
     glGenVertexArrays(1, &vao_circ);
@@ -115,8 +173,10 @@ void twod_init()
     glBindVertexArray(vao_circ);
     glBindBuffer(GL_ARRAY_BUFFER, vbo_circ);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vs_circ), vs_circ, GL_DYNAMIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
     glBindVertexArray(0);
 
     /* shaders */
@@ -124,10 +184,18 @@ void twod_init()
     shdr_simp_loc_modl = glGetUniformLocation(shdr_simp, "modl");
     shdr_simp_loc_col = glGetUniformLocation(shdr_simp, "uni_frag_col");
 
+    shdr_simp_circ = util_shader_load("shaders/twod_simp_circ.vs", "shaders/twod_simp_circ.fs");
+    shdr_simp_circ_loc_modl = glGetUniformLocation(shdr_simp_circ, "modl");
+    shdr_simp_circ_loc_r = glGetUniformLocation(shdr_simp_circ, "r");
+    shdr_simp_circ_loc_c = glGetUniformLocation(shdr_simp_circ, "c");
+    shdr_simp_circ_loc_cr = glGetUniformLocation(shdr_simp_circ, "cr");
+    shdr_simp_circ_loc_asp = glGetUniformLocation(shdr_simp_circ, "asp");
+    shdr_simp_circ_loc_col = glGetUniformLocation(shdr_simp_circ, "uni_frag_col");
+
+    shdr_tex = util_shader_load("shaders/twod_tex.vs", "shaders/twod_tex.fs");
+    shdr_tex_loc_modl = glGetUniformLocation(shdr_tex, "modl");
+
     /* text */
-    /* if (!TTF_Init()) { */
-    /*     printf("could not init TTF_Font: %s\n", SDL_GetError()); */
-    /* } */
     font_default = TTF_OpenFont("/home/oskar/.fonts/FiraCode/FiraMonoNerdFont-Medium.otf", 20);
     if (!font_default) {
         printf("could not open default font: %s\n", SDL_GetError());
@@ -136,44 +204,40 @@ void twod_init()
 
 void twod_draw_circlef(float x, float y, float r, Color c)
 {
-    int nvs = 100;
-    vec3s vs[nvs + 1];
-
-    float rx = r, ry = r;
-    _twod_map_pixel_ndc_coords(&x, &y);
-    _twod_map_pixel_ndc_dims(&rx, &ry);
-
-    vs[0] = {x, y, 0};
-    for (int i = 0; i <= nvs; ++i) {
-        vs[i].x = x + cos(((M_PI * 2.0f) / nvs) * (i % nvs)) * rx;
-        vs[i].y = y + sin(((M_PI * 2.0f) / nvs) * (i % nvs)) * ry;
-        vs[i].z = 0;
-    }
+    float rx = (r / scr_w) * 2.0f, ry = (r / scr_h) * 2.0f;
+    float px = (x / scr_w) * 2.0f - 1.0f;
+    float py = -1.0f * ((y / scr_h) * 2.0f - 1.0f);
 
     mat4s modl = GLMS_MAT4_IDENTITY;
+    modl = glms_translate(modl, {px, py, 0});
+    /* modl = glms_scale(modl, {rx * 2, ry * 2, 0}); */
 
-    glUseProgram(shdr_simp);
+    vec2s cp = {px, py};
+    vec2s cr = {rx, ry};
+    vec2s asp = {(float)scr_w, (float)scr_h};
+
+    /* glms_mat4_print(modl, stdout); */
+
+    glUseProgram(shdr_simp_circ);
     glBindVertexArray(vao_circ);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo_circ);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vs), vs, GL_DYNAMIC_DRAW);
-    glUniform4fv(shdr_simp_loc_col, 1, (float*)c.raw);
-    glUniformMatrix4fv(shdr_simp_loc_modl, 1, GL_FALSE, (float*)&modl);
-    glDrawArrays(GL_TRIANGLE_FAN, 0, sizeof(vs));
+    glUniform4fv(shdr_simp_circ_loc_col, 1, (float*)c.raw);
+    glUniform2fv(shdr_simp_circ_loc_c, 1, (float*)cp.raw);
+    glUniform2fv(shdr_simp_circ_loc_cr, 1, (float*)cr.raw);
+    glUniform2fv(shdr_simp_circ_loc_asp, 1, (float*)asp.raw);
+    glUniform1f(shdr_simp_circ_loc_r, (rx) * (rx) + (ry) * (ry));
+    glUniformMatrix4fv(shdr_simp_circ_loc_modl, 1, GL_FALSE, (float*)&modl);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
     glBindVertexArray(0);
 }
 
 void twod_draw_rectf(float x, float y, float w, float h, Color c)
 {
-    vec3s vs[6];
-    memcpy(vs, vs_rect, sizeof(vec3s) * 6);
-    _twod_transf_verts(vs, 6, x, y, w, h);
-
     mat4s modl = GLMS_MAT4_IDENTITY;
+    modl = glms_translate(modl, {((x / scr_w) * 2.0f - 1.0f), -1.0f * ((y / scr_h) * 2.0f - 1.0f), 0});
+    modl = glms_scale(modl, {(w / scr_w) * 2.0f, (h / scr_h) * 2.0f, 1});
 
     glUseProgram(shdr_simp);
     glBindVertexArray(vao_rect);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo_rect);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vs), vs, GL_DYNAMIC_DRAW);
     glUniform4fv(shdr_simp_loc_col, 1, (float*)c.raw);
     glUniformMatrix4fv(shdr_simp_loc_modl, 1, GL_FALSE, (float*)&modl);
     glDrawArrays(GL_TRIANGLES, 0, 6);
@@ -185,15 +249,113 @@ void twod_draw_rectv(vec2s a, float w, float h, Color c)
     twod_draw_rectf(a.x, a.y, w, h, c);
 }
 
-void twod_draw_text(float x, float y, float sz, Color c)
+void twod_draw_text(const char* txt, float x, float y, float sz, Color c, float angle)
 {
-
 }
 
+void twod_draw_rectf_tex(float x, float y, float w, float h, Color c, const char* tex, float angle)
+{
+    if (!_twod_tex_map.count(tex)) {
+        LOG_ERROR("could not find texture %s", tex);
+        return;
+    }
 
+    mat4s modl = GLMS_MAT4_IDENTITY;
+    modl = glms_translate(modl, {((x / scr_w) * 2.0f - 1.0f), -1.0f * ((y / scr_h) * 2.0f - 1.0f), 0});
+    modl = glms_scale(modl, {(w / scr_w) * 2.0f, (h / scr_h) * 2.0f, 1});
+    modl = glms_rotate(modl, angle, {0, 0, 1});
 
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, _twod_tex_map[tex]);
 
+    glUseProgram(shdr_tex);
+    glBindVertexArray(vao_rect);
+    glUniformMatrix4fv(shdr_tex_loc_modl, 1, GL_FALSE, (float*)&modl);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    glBindVertexArray(0);
+}
 
+void twod_draw_rectf_tex_rot(float x, float y, float w, float h, Color c, const char* tex, float angle)
+{
+    if (!_twod_tex_map.count(tex)) {
+        LOG_ERROR("could not find texture %s", tex);
+        return;
+    }
+
+    mat4s modl = GLMS_MAT4_IDENTITY;
+    modl = glms_translate(modl, {((x / scr_w) * 2.0f - 1.0f), -1.0f * ((y / scr_h) * 2.0f - 1.0f), 0});
+    modl = glms_scale(modl, {(w / scr_w) * 2.0f, (h / scr_h) * 2.0f, 1});
+    modl = glms_rotate(modl, angle, {0, 0, 1});
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, _twod_tex_map[tex]);
+
+    glUseProgram(shdr_tex);
+    glBindVertexArray(vao_rect);
+    glUniformMatrix4fv(shdr_tex_loc_modl, 1, GL_FALSE, (float*)&modl);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    glBindVertexArray(0);
+}
+
+u32 twod_create_tex(const char* img_path, const char* alias)
+{
+    u32 tex;
+    glGenTextures(1, &tex);
+    glBindTexture(GL_TEXTURE_2D, tex);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    int w, h, n_chans;
+    stbi_set_flip_vertically_on_load(true);
+    u8* img = stbi_load(img_path, &w, &h, &n_chans, 0);
+
+    if (img)
+    {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, img);
+        glGenerateMipmap(GL_TEXTURE_2D);
+    }
+    else
+    {
+        LOG_ERROR("err loading texture %s", img_path);
+        return 0;
+    }
+
+    stbi_image_free(img);
+    _twod_tex_map[alias] = tex;
+    return tex;
+}
+
+u32 twod_create_tex_a(const char* img_path, const char* alias)
+{
+    u32 tex;
+    glGenTextures(1, &tex);
+    glBindTexture(GL_TEXTURE_2D, tex);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    int w, h, n_chans;
+    stbi_set_flip_vertically_on_load(true);
+    u8* img = stbi_load(img_path, &w, &h, &n_chans, 0);
+
+    if (img)
+    {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, img);
+        glGenerateMipmap(GL_TEXTURE_2D);
+    }
+    else
+    {
+        LOG_ERROR("err loading texture %s", img_path);
+        return 0;
+    }
+
+    stbi_image_free(img);
+    _twod_tex_map[alias] = tex;
+    return tex;
+}
 
 
 
