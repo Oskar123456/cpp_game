@@ -13,11 +13,14 @@
  *
  *=======================================*/
 
-#include "../include/twod.hpp"
-#include "logging.hpp"
-#include "../external/SDL_ttf/include/SDL3_ttf/SDL_ttf.h"
+#include <twod.hpp>
+#include <logging.hpp>
+
+#include <ft2build.h>
+#include FT_FREETYPE_H
 #define STB_IMAGE_IMPLEMENTATION
-#include "stb/stb_image.h"
+#include <stb/stb_image.h>
+
 #include <map>
 
 using namespace std;
@@ -25,6 +28,15 @@ using namespace std;
 /* screen dims*/
 static i32 scr_w;
 static i32 scr_h;
+/* text */
+struct Glyph {
+    u32 tex;
+    vec2s sz;
+    vec2s bearing;
+    i64 adv;
+};
+
+static Glyph glyphs[256];
 /* shaders */
 static u32 shdr_simp;
 static u32 shdr_simp_loc_col;
@@ -32,6 +44,10 @@ static u32 shdr_simp_loc_modl;
 
 static u32 shdr_tex;
 static u32 shdr_tex_loc_modl;
+
+static u32 shdr_text;
+static u32 shdr_text_loc_modl;
+static u32 shdr_text_loc_col;
 
 static u32 shdr_simp_circ;
 static u32 shdr_simp_circ_loc_col;
@@ -64,13 +80,13 @@ static float vs_rect[] = {
 
 static float vs_text[] = {
 /*    ndc-coords       tex-coords */
-     -0.5, -0.5, -0.5, 0.0, 0.0,
-     -0.5,  0.5, -0.5, 0.0, 1.0,
-      0.5,  0.5, -0.5, 1.0, 1.0,
+     -0.5, -0.5, -0.5, 0.0, 1.0,
+     -0.5,  0.5, -0.5, 0.0, 0.0,
+      0.5,  0.5, -0.5, 1.0, 0.0,
 
-      0.5,  0.5, -0.5, 1.0, 1.0,
-     -0.5, -0.5, -0.5, 0.0, 0.0,
-      0.5, -0.5, -0.5, 1.0, 0.0,
+      0.5,  0.5, -0.5, 1.0, 0.0,
+     -0.5, -0.5, -0.5, 0.0, 1.0,
+      0.5, -0.5, -0.5, 1.0, 1.0,
 };
 
 static float vs_circ[] = {
@@ -91,7 +107,6 @@ float vs_tri[] = {
 };
 
 /* text */
-TTF_Font *font_default;
 
 void twod_update_scr_dims(i32 w, i32 h)
 {
@@ -142,6 +157,37 @@ void _twod_rot_rect(float *vs, int vs_w, int vs_h, float angle)
 
 void twod_init()
 {
+    /* text */
+    FT_Library ft;
+    FT_Face ft_face;
+    if (FT_Init_FreeType(&ft)) {
+        LOG_ERROR("could not init freetype");
+    }
+    if (FT_New_Face(ft, "/home/oskar/Documents/LearnOpenGL/resources/fonts/Antonio-Bold.ttf", 0, &ft_face)) {
+        LOG_ERROR("could not load face with freetype");
+    }
+
+    FT_Set_Pixel_Sizes(ft_face, 0, 48);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    for (int i = 0; i < 256; ++i) {
+        if (FT_Load_Char(ft_face, i, FT_LOAD_RENDER))
+            continue;
+        u32 tex;
+        glGenTextures(1, &tex);
+        glBindTexture(GL_TEXTURE_2D, tex);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RED,
+                ft_face->glyph->bitmap.width, ft_face->glyph->bitmap.rows,
+                0, GL_RED, GL_UNSIGNED_BYTE, ft_face->glyph->bitmap.buffer);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glyphs[i] = (Glyph){tex, {(float)ft_face->glyph->bitmap.width, (float)ft_face->glyph->bitmap.rows},
+            {(float)ft_face->glyph->bitmap_left, (float)ft_face->glyph->bitmap_top},
+            ft_face->glyph->advance.x};
+    }
+    FT_Done_Face(ft_face);
+    FT_Done_FreeType(ft);
     /* vertex data */
     glGenVertexArrays(1, &vao_rect);
     glGenBuffers(1, &vbo_rect);
@@ -195,11 +241,9 @@ void twod_init()
     shdr_tex = util_shader_load("shaders/twod_tex.vs", "shaders/twod_tex.fs");
     shdr_tex_loc_modl = glGetUniformLocation(shdr_tex, "modl");
 
-    /* text */
-    font_default = TTF_OpenFont("/home/oskar/.fonts/FiraCode/FiraMonoNerdFont-Medium.otf", 20);
-    if (!font_default) {
-        printf("could not open default font: %s\n", SDL_GetError());
-    }
+    shdr_text = util_shader_load("shaders/twod_text.vs", "shaders/twod_text.fs");
+    shdr_text_loc_modl = glGetUniformLocation(shdr_text, "modl");
+    shdr_text_loc_col = glGetUniformLocation(shdr_text, "uni_frag_col");
 }
 
 void twod_draw_circlef(float x, float y, float r, Color c)
@@ -249,8 +293,37 @@ void twod_draw_rectv(vec2s a, float w, float h, Color c)
     twod_draw_rectf(a.x, a.y, w, h, c);
 }
 
-void twod_draw_text(const char* txt, float x, float y, float sz, Color c, float angle)
+void twod_draw_text(const char* txt, u32 txt_len, float x, float y, float sz, Color col, float angle)
 {
+    mat4s modl = GLMS_MAT4_IDENTITY;
+    modl = glms_translate(modl, {((x / scr_w) * 2.0f - 1.0f), -1.0f * ((y / scr_h) * 2.0f - 1.0f), 0});
+    modl = glms_scale(modl, {(glyphs['M'].sz.x / scr_w) * 2.0f, (glyphs['M'].sz.y / scr_h) * 2.0f, 1});
+    modl = glms_rotate(modl, angle, {0, 0, 1});
+
+    float scale = 340;
+    float offs = 0;
+    for (int i = 0; i < txt_len; ++i) {
+        u8 c = txt[i];
+        if (c < 0 || c > 255 || !glyphs[c].tex)
+            continue;
+
+        /* printf("rendering a %c (%d)\n", c, glyphs[c].tex); */
+
+        offs = ((glyphs[c].bearing.x * scale) / scr_w) * 2.0f;
+        modl = glms_translate(modl, {offs, 0, 0});
+        /* modl = GLMS_MAT4_IDENTITY; */
+        /* modl = glms_rotate(modl, angle, {0, 0, 1}); */
+
+        /* glActiveTexture(GL_TEXTURE0); */
+        glBindTexture(GL_TEXTURE_2D, glyphs[c].tex);
+        /* glBindTexture(GL_TEXTURE_2D, _twod_tex_map["dirt"]); */
+        glUseProgram(shdr_text);
+        glBindVertexArray(vao_text);
+        glUniformMatrix4fv(shdr_text_loc_modl, 1, GL_FALSE, (float*)&modl);
+        glUniform4fv(shdr_text_loc_col, 1, (float*)col.raw);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+        glBindVertexArray(0);
+    }
 }
 
 void twod_draw_rectf_tex(float x, float y, float w, float h, Color c, const char* tex, float angle)
@@ -289,10 +362,12 @@ void twod_draw_rectf_tex_rot(float x, float y, float w, float h, Color c, const 
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, _twod_tex_map[tex]);
+    /* glBindTexture(GL_TEXTURE_2D, glyphs['O'].tex); */
 
     glUseProgram(shdr_tex);
     glBindVertexArray(vao_rect);
     glUniformMatrix4fv(shdr_tex_loc_modl, 1, GL_FALSE, (float*)&modl);
+    /* glUniform4fv(shdr_text_loc_col, 1, (float*)c.raw); */
     glDrawArrays(GL_TRIANGLES, 0, 6);
     glBindVertexArray(0);
 }

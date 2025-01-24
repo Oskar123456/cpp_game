@@ -18,7 +18,6 @@
 #include <SDL3/SDL_time.h>
 #define SDL_MAIN_USE_CALLBACKS 1
 #include <SDL3/SDL_main.h>
-#include "../external/SDL_ttf/include/SDL3_ttf/SDL_ttf.h"
 
 #include <glad/glad.h>
 #include <util.hpp>
@@ -217,10 +216,6 @@ SDL_AppResult SDL_AppInit(void **state, int argc, char *argv[])
         return SDL_APP_FAILURE;
     }
 
-    if (!TTF_Init()) {
-        return SDL_APP_FAILURE;
-    }
-
     bool gl_loaded = SDL_GL_LoadLibrary(NULL);
     if (!gl_loaded)
     {
@@ -285,8 +280,9 @@ SDL_AppResult SDL_AppInit(void **state, int argc, char *argv[])
 
     /* text */
     /* testing */
-    twod_create_tex_a("font_text", "gol");
+    /* twod_create_tex_a("font_text", "gol"); */
     twod_create_tex("textures/minecraft_dirt_pure.jpg", "dirt");
+    twod_create_tex("textures/minecraft_snow_top.jpg", "snow");
 
     return SDL_APP_CONTINUE;
 }
@@ -318,11 +314,13 @@ SDL_AppResult SDL_AppIterate(void *state)
     /* twod_draw_rectf_tex(rect.x, rect.y, rect.z, rect.w, COL_WHITE, "gol", rect_angle); */
     for (auto c : cells) {
         twod_draw_rectf(c.x * 10, c.y * 10, 10, 10, COL_BLACK);
-        twod_draw_rectf(c.x * 10 + 1, c.y * 10 + 1, 8, 8, COL_WHITE);
+        /* twod_draw_rectf(c.x * 10 + 1, c.y * 10 + 1, 8, 8, COL_WHITE); */
+        twod_draw_rectf_tex_rot(c.x * 10 + 1, c.y * 10 + 1, 8, 8, COL_WHITE, "snow", 0);
     }
 
     /* twod_draw_text("game of life", rect.x, rect.y, 10, COL_BLACK, 0); */
-    /* twod_draw_text("OO", rect.x + 100, rect.y + 100, 10, COL_WHITE, 0); */
+    const char* str = "testing twod_draw_text... :)";
+    twod_draw_text(str, strlen(str), rect.x + 100, rect.y + 100, 10, COL_WHITE, rect_angle - M_PI / 2);
 
     if (!paused)
     {

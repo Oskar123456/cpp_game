@@ -19,9 +19,9 @@ OBJEXT      := o
 
 #Flags, Libraries and Includes
 CFLAGS      := -fopenmp -g -Wall -Wno-unused-variable -Wno-sign-compare
-LIB         := -lm -lSDL3 -lSDL3_mixer $(shell pwd)/build/libSDL3_ttf.so.0
-INC         := -I$(INCDIR) -I$(LIBDIR)
-INCDEP      := -I$(INCDIR)
+LIB         := -lm -lSDL3 -lSDL3_mixer -lfreetype
+INC         := -I$(INCDIR) -I$(LIBDIR) -I/usr/include/freetype2 -I/usr/include/libpng16
+INCDEP      := -I$(INCDIR) -I/usr/include/freetype2 -I/usr/include/libpng16
 
 #---------------------------------------------------------------------------------
 #DO NOT EDIT BELOW THIS LINE

@@ -32,7 +32,7 @@ void twod_update_scr_dims(i32 w, i32 h);
 void twod_draw_rectf(float x, float y, float w, float h, Color c);
 void twod_draw_rectv(vec2s a, float w, float h, Color c);
 void twod_draw_circlef(float x, float y, float r, Color c);
-void twod_draw_text(const char* txt, float x, float y, float sz, Color c, float angle);
+void twod_draw_text(const char* txt, u32 txt_len, float x, float y, float sz, Color c, float angle);
 void twod_draw_rectf_tex(float x, float y, float w, float h, Color c, const char* tex, float angle);
 void twod_draw_rectf_tex_rot(float x, float y, float w, float h, Color c, const char* tex, float angle);
 u32 twod_create_tex(const char* img_path, const char* alias);
