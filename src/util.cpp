@@ -14,9 +14,9 @@
  *
  *=======================================*/
 
-#include "util.hpp"
+#include "util.h"
 #include "glad/glad.h"
-#include "logging.hpp"
+#include "logging.h"
 
 u32 util_shader_load(const char* path_vs, const char* path_fs)
 {

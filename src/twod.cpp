@@ -13,8 +13,8 @@
  *
  *=======================================*/
 
-#include <twod.hpp>
-#include <logging.hpp>
+#include <twod.h>
+#include <logging.h>
 
 #include <ft2build.h>
 #include FT_FREETYPE_H

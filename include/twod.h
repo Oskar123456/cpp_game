@@ -13,15 +13,15 @@
  *
  *=======================================*/
 
-#ifndef TWOD_HPP
-#define TWOD_HPP
+#ifndef TWOD_H
+#define TWOD_H
 
 #define CGLM_USE_ANONYMOUS_STRUCT 1
 #define CGLM_OMIT_NS_FROM_STRUCT_API 1
 #include <cglm/struct.h>
 #include <glad/glad.h>
 #include <SDL3/SDL.h>
-#include <util.hpp>
+#include <util.h>
 
 #define VEC4EXP(v) (v).x, (v).y, (v).z, (v).w
 

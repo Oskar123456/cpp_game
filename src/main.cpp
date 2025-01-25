@@ -20,10 +20,10 @@
 #include <SDL3/SDL_main.h>
 
 #include <glad/glad.h>
-#include <util.hpp>
-#include <world.hpp>
-#include <twod.hpp>
-#include <logging.hpp>
+#include <util.h>
+#include <world.h>
+#include <twod.h>
+#include <logging.h>
 
 #include <map>
 #include <set>

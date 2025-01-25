@@ -14,7 +14,7 @@
  *
  *=======================================*/
 
-#include "../include/world.hpp"
+#include "../include/world.h"
 
 void world_print_info()
 {

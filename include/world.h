@@ -1,5 +1,5 @@
-#ifndef WORLD_HPP
-#define WORLD_HPP
+#ifndef WORLD_H
+#define WORLD_H
 
 #include <cstdio>
 
