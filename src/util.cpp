@@ -14,8 +14,9 @@
  *
  *=======================================*/
 
-#include "../include/util.hpp"
-#include "../include/glad/glad.h"
+#include "util.hpp"
+#include "glad/glad.h"
+#include "logging.hpp"
 
 u32 util_shader_load(const char* path_vs, const char* path_fs)
 {
@@ -25,7 +26,7 @@ u32 util_shader_load(const char* path_vs, const char* path_fs)
     FILE *fs_f = fopen(path_fs, "r");
 
     if (!vs_f || !fs_f) {
-        printf("util_shader_load: err opening files\n");
+        LOG_ERROR(("util_shader_load: err opening files"));
     }
 
     fseek(vs_f, 0, SEEK_END);
@@ -46,7 +47,7 @@ u32 util_shader_load(const char* path_vs, const char* path_fs)
     glGetShaderiv(vs, GL_COMPILE_STATUS, &comp_status);
     if (!comp_status) {
         glGetShaderInfoLog(vs, 512, NULL, comp_status_buf);
-        printf("err compiling vertex shader: %s\n", comp_status_buf);
+        LOG_ERROR("err compiling vertex shader: %s", comp_status_buf);
     }
 
     u32 fs = glCreateShader(GL_FRAGMENT_SHADER);
@@ -57,7 +58,7 @@ u32 util_shader_load(const char* path_vs, const char* path_fs)
     glGetShaderiv(fs, GL_COMPILE_STATUS, &comp_status);
     if (!comp_status) {
         glGetShaderInfoLog(fs, 512, NULL, comp_status_buf);
-        printf("err compiling fragment shader: %s\n", comp_status_buf);
+        LOG_ERROR("err compiling fragment shader: %s", comp_status_buf);
     }
 
     sp = glCreateProgram();
@@ -68,7 +69,7 @@ u32 util_shader_load(const char* path_vs, const char* path_fs)
     glGetProgramiv(sp, GL_LINK_STATUS, &comp_status);
     if (!comp_status) {
         glGetShaderInfoLog(fs, 512, NULL, comp_status_buf);
-        printf("err linking shader program: %s\n", comp_status_buf);
+        LOG_ERROR("err linking shader program: %s", comp_status_buf);
     }
 
     fclose(vs_f);
@@ -78,7 +79,7 @@ u32 util_shader_load(const char* path_vs, const char* path_fs)
     glDeleteShader(vs);
     glDeleteShader(fs);
 
-    printf("succesfully loaded shaders %s, %s in %d\n", path_vs, path_fs, sp);
+    LOG_SUCCESS("succesfully loaded shaders %s, %s in %d", path_vs, path_fs, sp);
 
     return sp;
 }

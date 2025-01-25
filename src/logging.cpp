@@ -59,7 +59,7 @@ void log_error(const char* fmt, ...)
     fprintf(_log_outf, "(");
     log_print_timestamp();
     fprintf(_log_outf, ")");
-    log_print_w_color(" [WARNING] ", LOG_COLOR_RED);
+    log_print_w_color(" [ERROR] ", LOG_COLOR_RED);
     va_list va;
     va_start(va, fmt);
     vfprintf(_log_outf, fmt, va);
@@ -87,7 +87,7 @@ void log_info(const char* fmt, ...)
     fprintf(_log_outf, "(");
     log_print_timestamp();
     fprintf(_log_outf, ")");
-    log_print_w_color(" [WARNING] ", LOG_COLOR_BLUE);
+    log_print_w_color(" [INFO] ", LOG_COLOR_BLUE);
     va_list va;
     va_start(va, fmt);
     vfprintf(_log_outf, fmt, va);
@@ -101,7 +101,7 @@ void log_success(const char* fmt, ...)
     fprintf(_log_outf, "(");
     log_print_timestamp();
     fprintf(_log_outf, ")");
-    log_print_w_color(" [WARNING] ", LOG_COLOR_GREEN);
+    log_print_w_color(" [SUCCESS] ", LOG_COLOR_GREEN);
     va_list va;
     va_start(va, fmt);
     vfprintf(_log_outf, fmt, va);
