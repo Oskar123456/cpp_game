@@ -37,6 +37,8 @@ void twod_draw_rectf_tex(float x, float y, float w, float h, Color c, const char
 void twod_draw_rectf_tex_rot(float x, float y, float w, float h, Color c, const char* tex, float angle);
 u32 twod_create_tex(const char* img_path, const char* alias);
 u32 twod_create_tex_a(const char* img_path, const char* alias);
+float twod_get_text_length(const char* txt, u32 txt_len, float scale);
+void screenshot();
 
 #define COL_TOKYO {0x1A / 255.0f, 0x1B / 255.0f, 0x26 / 255.0f, 1.0f}
 #define COL_PINK {0xFF / 255.0f, 0x00 / 255.0f, 0x7F / 255.0f, 1.0f}

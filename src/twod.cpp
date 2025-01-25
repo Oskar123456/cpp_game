@@ -20,7 +20,10 @@
 #include FT_FREETYPE_H
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb/stb_image.h>
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include <stb/stb_image_write.h>
 
+#include <vector>
 #include <map>
 
 using namespace std;
@@ -46,7 +49,7 @@ static u32 shdr_tex;
 static u32 shdr_tex_loc_modl;
 
 static u32 shdr_text;
-static u32 shdr_text_loc_modl;
+static u32 shdr_text_loc_proj;
 static u32 shdr_text_loc_col;
 
 static u32 shdr_simp_circ;
@@ -163,7 +166,7 @@ void twod_init()
     if (FT_Init_FreeType(&ft)) {
         LOG_ERROR("could not init freetype");
     }
-    if (FT_New_Face(ft, "/home/oskar/Documents/LearnOpenGL/resources/fonts/Antonio-Bold.ttf", 0, &ft_face)) {
+    if (FT_New_Face(ft, "/usr/share/fonts/opentype/fira/FiraSans-Regular.otf", 0, &ft_face)) {
         LOG_ERROR("could not load face with freetype");
     }
 
@@ -206,9 +209,9 @@ void twod_init()
 
     glBindVertexArray(vao_text);
     glBindBuffer(GL_ARRAY_BUFFER, vbo_text);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vs_text), vs_text, GL_DYNAMIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vs_text), NULL, GL_DYNAMIC_DRAW);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
     glBindVertexArray(0);
@@ -242,8 +245,8 @@ void twod_init()
     shdr_tex_loc_modl = glGetUniformLocation(shdr_tex, "modl");
 
     shdr_text = util_shader_load("shaders/twod_text.vs", "shaders/twod_text.fs");
-    shdr_text_loc_modl = glGetUniformLocation(shdr_text, "modl");
-    shdr_text_loc_col = glGetUniformLocation(shdr_text, "uni_frag_col");
+    shdr_text_loc_proj = glGetUniformLocation(shdr_text, "proj");
+    shdr_text_loc_col = glGetUniformLocation(shdr_text, "text_color");
 }
 
 void twod_draw_circlef(float x, float y, float r, Color c)
@@ -293,37 +296,59 @@ void twod_draw_rectv(vec2s a, float w, float h, Color c)
     twod_draw_rectf(a.x, a.y, w, h, c);
 }
 
-void twod_draw_text(const char* txt, u32 txt_len, float x, float y, float sz, Color col, float angle)
+void twod_draw_text(const char* txt, u32 txt_len, float x, float y, float scale, Color col, float angle)
 {
-    mat4s modl = GLMS_MAT4_IDENTITY;
-    modl = glms_translate(modl, {((x / scr_w) * 2.0f - 1.0f), -1.0f * ((y / scr_h) * 2.0f - 1.0f), 0});
-    modl = glms_scale(modl, {(glyphs['M'].sz.x / scr_w) * 2.0f, (glyphs['M'].sz.y / scr_h) * 2.0f, 1});
-    modl = glms_rotate(modl, angle, {0, 0, 1});
+    y = scr_h - y;
+    float x_o = x, y_o = y;
 
-    float scale = 340;
-    float offs = 0;
+    glUseProgram(shdr_text);
+    mat4s proj = glms_ortho(0, scr_w, 0, scr_h, 0.00, 100);
+    /* proj = glms_rotate(proj, angle, {0, 0, 1}); */
+    glUniformMatrix4fv(shdr_text_loc_proj, 1, GL_FALSE, (float*)&proj);
+    glUniform4fv(shdr_text_loc_col, 1, (float*)&col);
+    glActiveTexture(GL_TEXTURE0);
+    glBindVertexArray(vao_text);
+
     for (int i = 0; i < txt_len; ++i) {
         u8 c = txt[i];
         if (c < 0 || c > 255 || !glyphs[c].tex)
-            continue;
+            glBindTexture(GL_TEXTURE_2D, glyphs['?'].tex);
+        else
+            glBindTexture(GL_TEXTURE_2D, glyphs[c].tex);
 
-        /* printf("rendering a %c (%d)\n", c, glyphs[c].tex); */
+        float x_off = x + glyphs[c].bearing.x * scale;
+        float y_off = y - (glyphs[c].sz.y - glyphs[c].bearing.y) * scale;
+        float w = glyphs[c].sz.x * scale;
+        float h = glyphs[c].sz.y * scale;
 
-        offs = ((glyphs[c].bearing.x * scale) / scr_w) * 2.0f;
-        modl = glms_translate(modl, {offs, 0, 0});
-        /* modl = GLMS_MAT4_IDENTITY; */
-        /* modl = glms_rotate(modl, angle, {0, 0, 1}); */
+        float vs[6][4] = {
+            { x_off,     y_off + h,   0.0f, 0.0f },
+            { x_off,     y_off,       0.0f, 1.0f },
+            { x_off + w, y_off,       1.0f, 1.0f },
 
-        /* glActiveTexture(GL_TEXTURE0); */
-        glBindTexture(GL_TEXTURE_2D, glyphs[c].tex);
-        /* glBindTexture(GL_TEXTURE_2D, _twod_tex_map["dirt"]); */
-        glUseProgram(shdr_text);
-        glBindVertexArray(vao_text);
-        glUniformMatrix4fv(shdr_text_loc_modl, 1, GL_FALSE, (float*)&modl);
-        glUniform4fv(shdr_text_loc_col, 1, (float*)col.raw);
+            { x_off,     y_off + h,   0.0f, 0.0f },
+            { x_off + w, y_off,       1.0f, 1.0f },
+            { x_off + w, y_off + h,   1.0f, 0.0f }
+        };
+
+        for (int i = 0; i < 6; ++i) {
+            vec2s v = {vs[i][0], vs[i][1]};
+            v = vec2_sub(v, {x_o, y_o});
+            v = vec2_rotate(v, angle);
+            v = vec2_add(v, {x_o, y_o});
+            vs[i][0] = v.x;
+            vs[i][1] = v.y;
+        }
+
+        glBindBuffer(GL_ARRAY_BUFFER, vbo_text);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vs), vs);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
         glDrawArrays(GL_TRIANGLES, 0, 6);
-        glBindVertexArray(0);
+
+        x += (glyphs[c].adv >> 6) * scale;
     }
+    glBindVertexArray(0);
+    glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 void twod_draw_rectf_tex(float x, float y, float w, float h, Color c, const char* tex, float angle)
@@ -432,5 +457,41 @@ u32 twod_create_tex_a(const char* img_path, const char* alias)
     return tex;
 }
 
+float twod_get_text_length(const char* txt, u32 txt_len, float scale)
+{
+    float len = 0;
+    for (int i = 0; i < txt_len; ++i) {
+        u8 c = txt[i];
+        if (c > 255 || !glyphs[c].tex)
+            c = '?';
+        len += (glyphs[c].adv >> 6) * scale;
+    }
+    return len;
+}
 
+void screenshot()
+{
+    time_t t;
+    struct tm t_s;
+    vector<char> buffer;
 
+    time(&t);
+    localtime_r(&t, &t_s);
+
+    char t_str[strlen("screenshot_00-00-0000" + 1)] = "screenshot_";
+    strftime(&t_str[strlen("screenshot_")], strlen("00-00-0000") + 1, "%d-%m-%Y", &t_s);
+
+    GLsizei nrChannels = 3;
+    GLsizei stride = nrChannels * scr_w;
+    stride += (stride % 4) ? (4 - stride % 4) : 0;
+    GLsizei buf_sz = stride * scr_h;
+    buffer.reserve(buf_sz);
+    glPixelStorei(GL_PACK_ALIGNMENT, 4);
+    glReadBuffer(GL_FRONT);
+    glReadPixels(0, 0, scr_w, scr_h, GL_RGB, GL_UNSIGNED_BYTE, buffer.data());
+
+    stbi_flip_vertically_on_write(true);
+    stbi_write_png(t_str, scr_w, scr_h, nrChannels, buffer.data(), stride);
+
+    printf("saved screenshot to %s/%s\n", getenv("PWD"), t_str);
+}

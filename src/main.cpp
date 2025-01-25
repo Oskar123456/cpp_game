@@ -36,6 +36,7 @@ using namespace std;
 /* TEMP */
 /* TEMP */
 /* TEMP */
+static int scr_w, scr_h;
 static SDL_Time t_last_update, t_now, t_delta;
 
 static SDL_Time t_hist[60];
@@ -129,16 +130,16 @@ void key_poll()
 
     int ms = 4;
     if (kcs[SDL_SCANCODE_UP]) {
-        rect.y = fmax(0, rect.y - ms);
+        rect.y = fmax(INT32_MIN, rect.y - ms);
     }
     if (kcs[SDL_SCANCODE_DOWN]) {
-        rect.y = fmax(0, rect.y + ms);
+        rect.y = fmax(INT32_MIN, rect.y + ms);
     }
     if (kcs[SDL_SCANCODE_LEFT]) {
-        rect.x = fmax(0, rect.x - ms);
+        rect.x = fmax(INT32_MIN, rect.x - ms);
     }
     if (kcs[SDL_SCANCODE_RIGHT]) {
-        rect.x = fmax(0, rect.x + ms);
+        rect.x = fmax(INT32_MIN, rect.x + ms);
     }
     if (kcs[SDL_SCANCODE_R]) {
         rect_angle = rect_angle + 0.10;
@@ -190,6 +191,9 @@ SDL_AppResult key_callback(SDL_KeyboardEvent kb_event)
         case SDL_SCANCODE_SPACE:
             paused = !paused;
             printf("%s\n", (paused) ? "paused" : "unpaused");
+            break;
+        case SDL_SCANCODE_F12:
+            screenshot();
             break;
         default:
             break;
@@ -267,9 +271,8 @@ SDL_AppResult SDL_AppInit(void **state, int argc, char *argv[])
 
     SDL_GetCurrentTime(&t_last_update);
 
-    int w, h;
-    SDL_GetWindowSizeInPixels(as->window, &w, &h);
-    twod_update_scr_dims(w, h);
+    SDL_GetWindowSizeInPixels(as->window, &scr_w, &scr_h);
+    twod_update_scr_dims(scr_w, scr_h);
     twod_init();
 
     cells.emplace((vec2s){11, 11});
@@ -320,7 +323,9 @@ SDL_AppResult SDL_AppIterate(void *state)
 
     /* twod_draw_text("game of life", rect.x, rect.y, 10, COL_BLACK, 0); */
     const char* str = "testing twod_draw_text... :)";
-    twod_draw_text(str, strlen(str), rect.x + 100, rect.y + 100, 10, COL_WHITE, rect_angle - M_PI / 2);
+    float str_text_pad = 20;
+    float str_text_len = twod_get_text_length(str, strlen(str), 0.5);
+    twod_draw_text(str, strlen(str), scr_w - str_text_len - str_text_pad, str_text_pad, 0.5, COL_WHITE, rect_angle - M_PI / 2);
 
     if (!paused)
     {
@@ -343,10 +348,9 @@ SDL_AppResult SDL_AppEvent(void *state, SDL_Event *event)
         return SDL_APP_SUCCESS;
 
     if (event->type == SDL_EVENT_WINDOW_RESIZED) {
-        int w, h;
-        SDL_GetWindowSizeInPixels(as->window, &w, &h);
-        twod_update_scr_dims(w, h);
-        glViewport(0, 0, w, h);
+        SDL_GetWindowSizeInPixels(as->window, &scr_w, &scr_h);
+        twod_update_scr_dims(scr_w, scr_h);
+        glViewport(0, 0, scr_w, scr_h);
         /* printf("%d %d\n", w, h); */
     }
 
