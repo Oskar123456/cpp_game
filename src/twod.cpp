@@ -167,7 +167,7 @@ void twod_init()
     if (FT_Init_FreeType(&ft)) {
         LOG_ERROR("could not init freetype");
     }
-    if (FT_New_Face(ft, "/usr/share/fonts/opentype/fira/FiraSans-Regular.otf", 0, &ft_face)) {
+    if (FT_New_Face(ft, "/home/oskar/.fonts/FiraCode/FiraCodeNerdFont-Regular.ttf", 0, &ft_face)) {
         LOG_ERROR("could not load face with freetype");
     }
 
@@ -379,6 +379,7 @@ void twod_draw_rectf_tex_rot(float x, float y, float w, float h, Color c, const 
 {
     if (!_twod_tex_map.count(tex)) {
         LOG_ERROR("could not find texture %s", tex);
+        exit(EXIT_FAILURE);
         return;
     }
 
@@ -479,7 +480,7 @@ void screenshot()
     time(&t);
     localtime_r(&t, &t_s);
 
-    char t_str[strlen("screenshot_00-00-0000" + 1)] = "screenshot_";
+    char t_str[strlen("screenshot_00-00-0000") + 1] = "screenshot_";
     strftime(&t_str[strlen("screenshot_")], strlen("00-00-0000") + 1, "%d-%m-%Y", &t_s);
 
     GLsizei nrChannels = 3;

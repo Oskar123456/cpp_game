@@ -163,16 +163,13 @@ void key_poll()
 
 SDL_AppResult key_callback(SDL_KeyboardEvent kb_event)
 {
-    if (kb_event.scancode != SDL_SCANCODE_ESCAPE)
-        exit_first = false;
     switch (kb_event.scancode) {
         case SDL_SCANCODE_F11:
             SDL_SetWindowFullscreen(app_state.window, !(SDL_GetWindowFlags(app_state.window) & SDL_WINDOW_FULLSCREEN));
             break;
         case SDL_SCANCODE_ESCAPE:
-            printf("esc down\n");
-            if (!exit_first)
-                return SDL_APP_SUCCESS;
+            printf("<ESC> pressed, exiting...\n");
+            return SDL_APP_SUCCESS;
             break;
         case SDL_SCANCODE_P:
             glms_vec4_print(rect, stdout);
@@ -284,8 +281,8 @@ SDL_AppResult SDL_AppInit(void **state, int argc, char *argv[])
     /* text */
     /* testing */
     /* twod_create_tex_a("font_text", "gol"); */
-    twod_create_tex("textures/minecraft_dirt_pure.jpg", "dirt");
-    twod_create_tex("textures/minecraft_snow_top.jpg", "snow");
+    twod_create_tex("/home/oskar/Documents/cpp_game/resources/textures/minecraft_grass_side.jpg", "dirt");
+    twod_create_tex("/home/oskar/Documents/cpp_game/resources/textures/minecraft_snow_top.jpg", "snow");
 
     return SDL_APP_CONTINUE;
 }

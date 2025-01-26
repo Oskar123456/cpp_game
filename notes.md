@@ -2,4 +2,8 @@
 
 ## Text rendering
 
+  - freetype2
+
 ## Notes
+
+

@@ -37,10 +37,12 @@ export
 all: resources $(TARGET)
 
 run: resources $(TARGET)
-	cd $(TARGETDIR) && LD_PRELOAD=$(shell pwd)/build/libSDL3_ttf.so.0 ./$(TARGET)
+	cd $(TARGETDIR) && LD_PRELOAD=$(shell pwd)/build/libSDL3.so.0 ./$(TARGET)
+	# cd $(TARGETDIR) && ./$(TARGET)
 
 run_only:
-	cd $(TARGETDIR) && LD_PRELOAD=$(shell pwd)/build/libSDL3_ttf.so.0 ./$(TARGET)
+	cd $(TARGETDIR) && LD_PRELOAD=$(shell pwd)/build/libSDL3.so.0 ./$(TARGET)
+	# cd $(TARGETDIR) && ./$(TARGET)
 
 #Remake
 remake: cleaner all
