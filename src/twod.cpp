@@ -47,6 +47,7 @@ static u32 shdr_simp_loc_modl;
 
 static u32 shdr_tex;
 static u32 shdr_tex_loc_modl;
+static u32 shdr_tex_loc_col;
 
 static u32 shdr_text;
 static u32 shdr_text_loc_proj;
@@ -243,6 +244,7 @@ void twod_init()
 
     shdr_tex = util_shader_load("shaders/twod_tex.vs", "shaders/twod_tex.fs");
     shdr_tex_loc_modl = glGetUniformLocation(shdr_tex, "modl");
+    shdr_tex_loc_col = glGetUniformLocation(shdr_tex, "col");
 
     shdr_text = util_shader_load("shaders/twod_text.vs", "shaders/twod_text.fs");
     shdr_text_loc_proj = glGetUniformLocation(shdr_text, "proj");
@@ -302,7 +304,7 @@ void twod_draw_text(const char* txt, u32 txt_len, float x, float y, float scale,
     float x_o = x, y_o = y;
 
     glUseProgram(shdr_text);
-    mat4s proj = glms_ortho(0, scr_w, 0, scr_h, 0.00, 100);
+    mat4s proj = glms_ortho(0, scr_w, 0, scr_h, 0, 1);
     /* proj = glms_rotate(proj, angle, {0, 0, 1}); */
     glUniformMatrix4fv(shdr_text_loc_proj, 1, GL_FALSE, (float*)&proj);
     glUniform4fv(shdr_text_loc_col, 1, (float*)&col);
@@ -387,12 +389,11 @@ void twod_draw_rectf_tex_rot(float x, float y, float w, float h, Color c, const 
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, _twod_tex_map[tex]);
-    /* glBindTexture(GL_TEXTURE_2D, glyphs['O'].tex); */
 
     glUseProgram(shdr_tex);
     glBindVertexArray(vao_rect);
     glUniformMatrix4fv(shdr_tex_loc_modl, 1, GL_FALSE, (float*)&modl);
-    /* glUniform4fv(shdr_text_loc_col, 1, (float*)c.raw); */
+    glUniform4fv(shdr_tex_loc_col, 1, (float*)c.raw);
     glDrawArrays(GL_TRIANGLES, 0, 6);
     glBindVertexArray(0);
 }
