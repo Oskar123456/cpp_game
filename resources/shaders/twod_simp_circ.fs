@@ -1,32 +1,34 @@
 #version 330 core
 
-in vec2 frag_pos;
+in vec2 scr_coord;
+in vec2 tex_coord;
 
-uniform vec4 uni_frag_col;
-uniform float r;
+uniform sampler2D tex;
+uniform bool use_tex;
+uniform vec4 color;
 uniform vec2 c;
-uniform vec2 cr;
-uniform vec2 asp;
+uniform float r;
 
-out vec4 out_frag_col;
+out vec4 col_fin;
 
 void main()
-{
-    float asp_rat = asp.x / asp.y;
+{    
+    float dc = (scr_coord.x - c.x) * (scr_coord.x - c.x) + (scr_coord.y - c.y) * (scr_coord.y - c.y);
     
-    vec2 xy = vec2(asp_rat * frag_pos.x, frag_pos.y);
-    
-    float border_thickness = 0.01;
-    float blueness = 0.02;
-    float d = sqrt(dot(xy, xy));
-    float t = 1.0 - smoothstep(0.0, border_thickness, abs(sqrt(r) - d));
-    float tb = 1.0 - smoothstep(0.0, blueness, abs(sqrt(r) - d));
-    
-    out_frag_col = uni_frag_col;
-    out_frag_col.y += tb;
-    out_frag_col.w = 1.0 - t;
-    
-    if (dot(xy, xy) > r)
+    if (dc > r * r)
         discard;
+    
+    float border_thickness = 10;
+    float dp = r - dc;
+    float t = 1.0 - smoothstep(0.0, border_thickness, r - dp);
+    
+    if (use_tex) {
+        col_fin = mix(texture(tex, tex_coord), color, 0.5);
+    } else {
+        col_fin = color;
+    }
+    
+    col_fin.w = 1.0 - t;
+    
+    /* col_fin = color; */
 }
-

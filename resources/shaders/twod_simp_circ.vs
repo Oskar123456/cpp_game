@@ -1,14 +1,16 @@
 #version 330 core
 
-layout (location = 0) in vec3 in_pos;
-layout (location = 1) in vec2 in_tex;
+layout (location = 0) in vec2 in_pos;
+layout (location = 1) in vec2 in_tex_coord;
 
-uniform mat4 modl;
+uniform mat4 proj;
 
-out vec2 frag_pos;
+out vec2 scr_coord;
+out vec2 tex_coord;
 
 void main()
 {
-    gl_Position = modl * vec4(in_pos, 1);
-    frag_pos = vec2(in_pos.x, in_pos.y);
+    gl_Position = proj * vec4(in_pos, 0, 1);
+    tex_coord = in_tex_coord;
+    scr_coord = in_pos;
 }

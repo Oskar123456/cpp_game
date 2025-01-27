@@ -2,12 +2,16 @@
 
 in vec2 tex_coord;
 
-uniform sampler2D tex0;
+uniform sampler2D tex;
+uniform vec4 color;
 
 out vec4 out_col;
 
 void main()
 {
-    out_col = texture(tex0, tex_coord);
+    if (color == vec4(1, 1, 1, 1))
+        out_col = texture(tex, tex_coord);
+    else
+        out_col = mix(texture(tex, tex_coord), color, 0.5);
 }
 

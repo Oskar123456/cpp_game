@@ -43,10 +43,10 @@ static Glyph glyphs[256];
 /* shaders */
 static u32 shdr_simp;
 static u32 shdr_simp_loc_col;
-static u32 shdr_simp_loc_modl;
+static u32 shdr_simp_loc_proj;
 
 static u32 shdr_tex;
-static u32 shdr_tex_loc_modl;
+static u32 shdr_tex_loc_proj;
 static u32 shdr_tex_loc_col;
 
 static u32 shdr_text;
@@ -55,11 +55,10 @@ static u32 shdr_text_loc_col;
 
 static u32 shdr_simp_circ;
 static u32 shdr_simp_circ_loc_col;
+static u32 shdr_simp_circ_loc_proj;
 static u32 shdr_simp_circ_loc_r;
 static u32 shdr_simp_circ_loc_c;
-static u32 shdr_simp_circ_loc_cr;
-static u32 shdr_simp_circ_loc_modl;
-static u32 shdr_simp_circ_loc_asp;
+static u32 shdr_simp_circ_loc_use_tex;
 /* textures */
 static map<string, u32> _twod_tex_map;
 /* vertex data */
@@ -93,16 +92,7 @@ static float vs_text[] = {
       0.5, -0.5, -0.5, 1.0, 1.0,
 };
 
-static float vs_circ[] = {
-/*    ndc-coords       tex-coords */
-     -1.0, -1.0, -1.0, 0.0, 0.0,
-     -1.0,  1.0, -1.0, 0.0, 1.0,
-      1.0,  1.0, -1.0, 1.0, 1.0,
-
-      1.0,  1.0, -1.0, 1.0, 1.0,
-     -1.0, -1.0, -1.0, 0.0, 0.0,
-      1.0, -1.0, -1.0, 1.0, 0.0,
-};
+static float vs_circ[6][4];
 
 float vs_tri[] = {
     -0.5f, -0.5f, 0.0f,
@@ -199,8 +189,8 @@ void twod_init()
     glBindVertexArray(vao_rect);
     glBindBuffer(GL_ARRAY_BUFFER, vbo_rect);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vs_rect), vs_rect, GL_DYNAMIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
     glBindVertexArray(0);
@@ -222,73 +212,137 @@ void twod_init()
 
     glBindVertexArray(vao_circ);
     glBindBuffer(GL_ARRAY_BUFFER, vbo_circ);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vs_circ), vs_circ, GL_DYNAMIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vs_circ), NULL, GL_DYNAMIC_DRAW);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
     glBindVertexArray(0);
 
     /* shaders */
     shdr_simp = util_shader_load("shaders/twod_simp.vs", "shaders/twod_simp.fs");
-    shdr_simp_loc_modl = glGetUniformLocation(shdr_simp, "modl");
-    shdr_simp_loc_col = glGetUniformLocation(shdr_simp, "uni_frag_col");
+    shdr_simp_loc_proj = glGetUniformLocation(shdr_simp, "proj");
+    shdr_simp_loc_col = glGetUniformLocation(shdr_simp, "color");
 
     shdr_simp_circ = util_shader_load("shaders/twod_simp_circ.vs", "shaders/twod_simp_circ.fs");
-    shdr_simp_circ_loc_modl = glGetUniformLocation(shdr_simp_circ, "modl");
+    shdr_simp_circ_loc_col = glGetUniformLocation(shdr_simp_circ, "color");
+    shdr_simp_circ_loc_proj = glGetUniformLocation(shdr_simp_circ, "proj");
     shdr_simp_circ_loc_r = glGetUniformLocation(shdr_simp_circ, "r");
     shdr_simp_circ_loc_c = glGetUniformLocation(shdr_simp_circ, "c");
-    shdr_simp_circ_loc_cr = glGetUniformLocation(shdr_simp_circ, "cr");
-    shdr_simp_circ_loc_asp = glGetUniformLocation(shdr_simp_circ, "asp");
-    shdr_simp_circ_loc_col = glGetUniformLocation(shdr_simp_circ, "uni_frag_col");
+    shdr_simp_circ_loc_use_tex = glGetUniformLocation(shdr_simp_circ, "use_tex");
 
     shdr_tex = util_shader_load("shaders/twod_tex.vs", "shaders/twod_tex.fs");
-    shdr_tex_loc_modl = glGetUniformLocation(shdr_tex, "modl");
-    shdr_tex_loc_col = glGetUniformLocation(shdr_tex, "col");
+    shdr_tex_loc_proj = glGetUniformLocation(shdr_tex, "proj");
+    shdr_tex_loc_col = glGetUniformLocation(shdr_tex, "color");
 
     shdr_text = util_shader_load("shaders/twod_text.vs", "shaders/twod_text.fs");
     shdr_text_loc_proj = glGetUniformLocation(shdr_text, "proj");
     shdr_text_loc_col = glGetUniformLocation(shdr_text, "text_color");
 }
 
-void twod_draw_circlef(float x, float y, float r, Color c)
+void twod_draw_circlef(float x, float y, float r, Color col)
 {
-    float rx = (r / scr_w) * 2.0f, ry = (r / scr_h) * 2.0f;
-    float px = (x / scr_w) * 2.0f - 1.0f;
-    float py = -1.0f * ((y / scr_h) * 2.0f - 1.0f);
-
-    mat4s modl = GLMS_MAT4_IDENTITY;
-    modl = glms_translate(modl, {px, py, 0});
-    /* modl = glms_scale(modl, {rx * 2, ry * 2, 0}); */
-
-    vec2s cp = {px, py};
-    vec2s cr = {rx, ry};
-    vec2s asp = {(float)scr_w, (float)scr_h};
-
-    /* glms_mat4_print(modl, stdout); */
+    mat4s proj = glms_ortho(0, scr_w, 0, scr_h, 0, 1);
+    vec2s c = {x, y};
 
     glUseProgram(shdr_simp_circ);
     glBindVertexArray(vao_circ);
-    glUniform4fv(shdr_simp_circ_loc_col, 1, (float*)c.raw);
-    glUniform2fv(shdr_simp_circ_loc_c, 1, (float*)cp.raw);
-    glUniform2fv(shdr_simp_circ_loc_cr, 1, (float*)cr.raw);
-    glUniform2fv(shdr_simp_circ_loc_asp, 1, (float*)asp.raw);
-    glUniform1f(shdr_simp_circ_loc_r, (rx) * (rx) + (ry) * (ry));
-    glUniformMatrix4fv(shdr_simp_circ_loc_modl, 1, GL_FALSE, (float*)&modl);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo_circ);
+
+    float vs[6][4] = {
+        { x - r * r,  y + r * r,  0.0f, 0.0f },
+        { x - r * r,  y - r * r,  0.0f, 1.0f },
+        { x + r  * r, y - r * r,  1.0f, 1.0f },
+
+        { x - r * r,  y + r  * r, 0.0f, 0.0f },
+        { x + r  * r, y - r * r,  1.0f, 1.0f },
+        { x + r  * r, y + r  * r, 1.0f, 0.0f }
+    };
+
+    /* for (int i = 0; i < 6; ++i) { */
+    /*     printf("%.1f %.1f %.1f\n", vs[i][0], vs[i][1], vs[i][2]); */
+    /* } */
+
+    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vs), vs);
+
+    glUniform4fv(shdr_simp_circ_loc_col, 1, (float*)col.raw);
+    glUniformMatrix4fv(shdr_simp_circ_loc_proj, 1, GL_FALSE, (float*)proj.raw);
+    glUniform2fv(shdr_simp_circ_loc_c, 1, (float*)c.raw);
+    glUniform1f(shdr_simp_circ_loc_r, r);
+    glUniform1i(shdr_simp_circ_loc_use_tex, 0);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    glBindVertexArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
+void twod_draw_rectf(float x, float y, float w, float h, Color col)
+{
+    y = scr_h - y;
+
+    mat4s proj = glms_ortho(0, scr_w, 0, scr_h, 0, 1);
+    vec2s c = {x, y};
+
+    glUseProgram(shdr_simp);
+    glBindVertexArray(vao_rect);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo_rect);
+
+    float vs[6][4] = {
+        { x,     y + w,  0.0f, 0.0f },
+        { x,     y,      0.0f, 1.0f },
+        { x + w, y,      1.0f, 1.0f },
+
+        { x,     y + w,  0.0f, 0.0f },
+        { x + w, y,      1.0f, 1.0f },
+        { x + w, y + w,  1.0f, 0.0f }
+    };
+
+    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vs), vs);
+
+    glUniform4fv(shdr_simp_loc_col, 1, (float*)c.raw);
+    glUniformMatrix4fv(shdr_simp_loc_proj, 1, GL_FALSE, (float*)&proj);
     glDrawArrays(GL_TRIANGLES, 0, 6);
     glBindVertexArray(0);
 }
 
-void twod_draw_rectf(float x, float y, float w, float h, Color c)
+void twod_draw_rectf_tex(float x, float y, float w, float h, Color col, const char* tex, float angle)
 {
-    mat4s modl = GLMS_MAT4_IDENTITY;
-    modl = glms_translate(modl, {((x / scr_w) * 2.0f - 1.0f), -1.0f * ((y / scr_h) * 2.0f - 1.0f), 0});
-    modl = glms_scale(modl, {(w / scr_w) * 2.0f, (h / scr_h) * 2.0f, 1});
+    y = scr_h - y;
 
-    glUseProgram(shdr_simp);
+    if (!_twod_tex_map.count(tex)) {
+        LOG_ERROR("could not find texture %s", tex);
+        return;
+    }
+
+    mat4s proj = glms_ortho(0, scr_w, 0, scr_h, 0, 1);
+
+    glUseProgram(shdr_tex);
     glBindVertexArray(vao_rect);
-    glUniform4fv(shdr_simp_loc_col, 1, (float*)c.raw);
-    glUniformMatrix4fv(shdr_simp_loc_modl, 1, GL_FALSE, (float*)&modl);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo_rect);
+    glBindTexture(GL_TEXTURE_2D, _twod_tex_map[tex]);
+
+    float vs[6][4] = {
+        { x,     y + w,  0.0f, 0.0f },
+        { x,     y,      0.0f, 1.0f },
+        { x + w, y,      1.0f, 1.0f },
+
+        { x,     y + w,  0.0f, 0.0f },
+        { x + w, y,      1.0f, 1.0f },
+        { x + w, y + w,  1.0f, 0.0f }
+    };
+
+    for (int i = 0; i < 6; ++i) {
+        vec2s v = {vs[i][0], vs[i][1]};
+        v = vec2_sub(v, {x + w / 2, y + w / 2});
+        v = vec2_rotate(v, angle);
+        v = vec2_add(v, {x + w / 2, y + w / 2});
+        vs[i][0] = v.x;
+        vs[i][1] = v.y;
+    }
+
+    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vs), vs);
+
+    glUniform4fv(shdr_simp_loc_col, 1, (float*)col.raw);
+    glUniformMatrix4fv(shdr_simp_loc_proj, 1, GL_FALSE, (float*)&proj);
     glDrawArrays(GL_TRIANGLES, 0, 6);
     glBindVertexArray(0);
 }
@@ -353,27 +407,27 @@ void twod_draw_text(const char* txt, u32 txt_len, float x, float y, float scale,
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-void twod_draw_rectf_tex(float x, float y, float w, float h, Color c, const char* tex, float angle)
-{
-    if (!_twod_tex_map.count(tex)) {
-        LOG_ERROR("could not find texture %s", tex);
-        return;
-    }
+/* void twod_draw_rectf_tex(float x, float y, float w, float h, Color c, const char* tex, float angle) */
+/* { */
+/*     if (!_twod_tex_map.count(tex)) { */
+/*         LOG_ERROR("could not find texture %s", tex); */
+/*         return; */
+/*     } */
 
-    mat4s modl = GLMS_MAT4_IDENTITY;
-    modl = glms_translate(modl, {((x / scr_w) * 2.0f - 1.0f), -1.0f * ((y / scr_h) * 2.0f - 1.0f), 0});
-    modl = glms_scale(modl, {(w / scr_w) * 2.0f, (h / scr_h) * 2.0f, 1});
-    modl = glms_rotate(modl, angle, {0, 0, 1});
+/*     mat4s modl = GLMS_MAT4_IDENTITY; */
+/*     modl = glms_translate(modl, {((x / scr_w) * 2.0f - 1.0f), -1.0f * ((y / scr_h) * 2.0f - 1.0f), 0}); */
+/*     modl = glms_scale(modl, {(w / scr_w) * 2.0f, (h / scr_h) * 2.0f, 1}); */
+/*     modl = glms_rotate(modl, angle, {0, 0, 1}); */
 
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, _twod_tex_map[tex]);
+/*     glActiveTexture(GL_TEXTURE0); */
+/*     glBindTexture(GL_TEXTURE_2D, _twod_tex_map[tex]); */
 
-    glUseProgram(shdr_tex);
-    glBindVertexArray(vao_rect);
-    glUniformMatrix4fv(shdr_tex_loc_modl, 1, GL_FALSE, (float*)&modl);
-    glDrawArrays(GL_TRIANGLES, 0, 6);
-    glBindVertexArray(0);
-}
+/*     glUseProgram(shdr_tex); */
+/*     glBindVertexArray(vao_rect); */
+/*     glUniformMatrix4fv(shdr_tex_loc_modl, 1, GL_FALSE, (float*)&modl); */
+/*     glDrawArrays(GL_TRIANGLES, 0, 6); */
+/*     glBindVertexArray(0); */
+/* } */
 
 void twod_draw_rectf_tex_rot(float x, float y, float w, float h, Color c, const char* tex, float angle)
 {
@@ -393,7 +447,7 @@ void twod_draw_rectf_tex_rot(float x, float y, float w, float h, Color c, const 
 
     glUseProgram(shdr_tex);
     glBindVertexArray(vao_rect);
-    glUniformMatrix4fv(shdr_tex_loc_modl, 1, GL_FALSE, (float*)&modl);
+    glUniformMatrix4fv(shdr_tex_loc_proj, 1, GL_FALSE, (float*)&modl);
     glUniform4fv(shdr_tex_loc_col, 1, (float*)c.raw);
     glDrawArrays(GL_TRIANGLES, 0, 6);
     glBindVertexArray(0);

@@ -145,16 +145,20 @@ void key_poll()
         rect_angle = rect_angle + 0.10;
     }
     if (kcs[SDL_SCANCODE_W]) {
-        circ.y = fmax(0, circ.y - ms);
+        circ.y = fmax(0, circ.y + ms);
+        printf("%f %f\n", circ.x, circ.y);
     }
     if (kcs[SDL_SCANCODE_S]) {
-        circ.y = fmax(0, circ.y + ms);
+        circ.y = fmax(0, circ.y - ms);
+        printf("%f %f\n", circ.x, circ.y);
     }
     if (kcs[SDL_SCANCODE_A]) {
         circ.x = fmax(0, circ.x - ms);
+        printf("%f %f\n", circ.x, circ.y);
     }
     if (kcs[SDL_SCANCODE_D]) {
         circ.x = fmax(0, circ.x + ms);
+        printf("%f %f\n", circ.x, circ.y);
     }
     if (kcs[SDL_SCANCODE_R]) {
         rect_angle = rect_angle + 0.10;
@@ -303,26 +307,16 @@ SDL_AppResult SDL_AppIterate(void *state)
     key_poll();
     mouse_poll();
 
-    /* printf("ft: %lums (avg. ft: %lums)\n", t_delta / 1000000, t_avg / 1000000); */
-
     Color bg = COL_TOKYO;
     glClearColor(VEC4EXP(bg));
     glClear(GL_COLOR_BUFFER_BIT);
 
-    /* twod_draw_circlef(circ.x, circ.y, circ.z, COL_PINK); */
-    twod_draw_rectf_tex_rot(rect.x, rect.y, rect.z, rect.w, COL_WHITE, "dirt", rect_angle);
-    /* twod_draw_rectf_tex(rect.x, rect.y, rect.z, rect.w, COL_WHITE, "gol", rect_angle); */
+    twod_draw_circlef(circ.x, circ.y, circ.z, COL_PINK);
+    twod_draw_rectf_tex(rect.x, rect.y, rect.z, rect.w, COL_WHITE, "dirt", rect_angle);
     for (auto c : cells) {
         twod_draw_rectf(c.x * 10, c.y * 10, 10, 10, COL_BLACK);
-        /* twod_draw_rectf(c.x * 10 + 1, c.y * 10 + 1, 8, 8, COL_WHITE); */
-        twod_draw_rectf_tex_rot(c.x * 10 + 1, c.y * 10 + 1, 8, 8, COL_WHITE, "snow", 0);
+        twod_draw_rectf_tex(c.x * 10 + 1, c.y * 10 + 1, 8, 8, COL_WHITE, "snow", 0);
     }
-
-    /* twod_draw_text("game of life", rect.x, rect.y, 10, COL_BLACK, 0); */
-    const char* str = "testing twod_draw_text... :)";
-    float str_text_pad = 20;
-    float str_text_len = twod_get_text_length(str, strlen(str), 0.5);
-    twod_draw_text(str, strlen(str), scr_w - str_text_len - str_text_pad, str_text_pad, 0.5, COL_WHITE, rect_angle - M_PI / 2);
 
     if (!paused)
     {
@@ -330,6 +324,10 @@ SDL_AppResult SDL_AppIterate(void *state)
             cells = gol_next_gen(cells);
         }
     }
+
+    char fps_str[50] = "ooo";
+    sprintf(fps_str, "ft: %.1fms", t_avg / 1000000.0f);
+    twod_draw_text(fps_str, strlen(fps_str), 10, 20, 0.3, COL_WHITE, 0);
 
     SDL_GL_SwapWindow(as->window);
 
