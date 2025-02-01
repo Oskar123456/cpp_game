@@ -16,36 +16,50 @@ void main()
 {
     /* corner calc */
 
-    float sc_h = dims.y / 2.0f;
-    float sc_w = min(dims.x / 2.0f, sc_h);
-    float sc_r = max(1, sqrt(sc_h * sc_h + sc_w * sc_w) - border_rad);
-    vec2 sc_c_l = vec2(center.x - (dims.x / 2.0f - sc_w), center.y);
-    vec2 sc_c_r = vec2(center.x + (dims.x / 2.0f - sc_w), center.y);
-    
+    float a = min(sqrt((border_rad * border_rad) / 2.0f), min(dims.y / 2.0f, dims.x / 2.0f));
+
+    vec2 c1 = vec2(center.x - dims.x / 2.0f + a, center.y - dims.y / 2.0f + a);
+    vec2 c2 = vec2(center.x - dims.x / 2.0f + a, center.y + dims.y / 2.0f - a);
+    vec2 c3 = vec2(center.x + dims.x / 2.0f - a, center.y - dims.y / 2.0f + a);
+    vec2 c4 = vec2(center.x + dims.x / 2.0f - a, center.y + dims.y / 2.0f - a);
+
     float border_fuzz = 1;
 
-    if (scr_coord.x < sc_c_l.x) {
-        float r = sqrt((scr_coord.x - sc_c_l.x) * (scr_coord.x - sc_c_l.x) + (scr_coord.y - sc_c_l.y) * (scr_coord.y - sc_c_l.y));
-        
-        if (r > sc_r) {
-            discard;
+    if (scr_coord.x <= c1.x) {
+        if (scr_coord.y <= c1.y) {
+            float r = (scr_coord.x - c1.x) * (scr_coord.x - c1.x) + (scr_coord.y - c1.y) * (scr_coord.y - c1.y);
+            if (r > a * a)
+                discard;
+            border_fuzz = smoothstep(0, 2, a - sqrt(r));
         }
         
-        border_fuzz = smoothstep(0, 2, sc_r - r);
+        if (scr_coord.y >= c2.y) {
+            float r = (scr_coord.x - c2.x) * (scr_coord.x - c2.x) + (scr_coord.y - c2.y) * (scr_coord.y - c2.y);
+            if (r > a * a)
+                discard;
+            border_fuzz = smoothstep(0, 2, a - sqrt(r));
+        }
     }
     
-    else if (scr_coord.x > sc_c_r.x) {
-        float r = sqrt((scr_coord.x - sc_c_r.x) * (scr_coord.x - sc_c_r.x) + (scr_coord.y - sc_c_r.y) * (scr_coord.y - sc_c_r.y));
-        
-        if (r > sc_r) {
-            discard;
+    else if (scr_coord.x >= c3.x) {
+        if (scr_coord.y <= c3.y) {
+            float r = (scr_coord.x - c3.x) * (scr_coord.x - c3.x) + (scr_coord.y - c3.y) * (scr_coord.y - c3.y);
+            if (r > a * a)
+                discard;
+            border_fuzz = smoothstep(0, 2, a - sqrt(r));
         }
         
-        border_fuzz = smoothstep(0, 2, sc_r - r);
+        if (scr_coord.y >= c4.y) {
+            float r = (scr_coord.x - c4.x) * (scr_coord.x - c4.x) + (scr_coord.y - c4.y) * (scr_coord.y - c4.y);
+            if (r > a * a)
+                discard;
+            border_fuzz = smoothstep(0, 2, a - sqrt(r));
+        }
     }
 
-    else {
-        border_fuzz = smoothstep(0, 2, dims.y / 2.0f - abs((scr_coord.y - center.y)));
+    if (border_fuzz == 1) {
+        border_fuzz = min(smoothstep(0, 2, dims.y / 2.0f - abs(scr_coord.y - center.y)),
+                smoothstep(0, 2, dims.x / 2.0f - abs(scr_coord.x - center.x)));
     }
 
     /* coloring */

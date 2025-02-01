@@ -45,6 +45,7 @@ static int t_hist_idx;
 static vec3s circ = {400, 400, 100};
 static vec4s rect = {100, 100, 100, 100};
 static float rect_angle = M_PI / 4;
+static int border_radius = 0;
 
 static bool paused;
 
@@ -146,22 +147,32 @@ void key_poll()
     }
     if (kcs[SDL_SCANCODE_W]) {
         circ.y = fmax(0, circ.y + ms);
+        rect.z++;
         /* printf("%f %f\n", circ.x, circ.y); */
     }
     if (kcs[SDL_SCANCODE_S]) {
         circ.y = fmax(0, circ.y - ms);
+        rect.z--;
         /* printf("%f %f\n", circ.x, circ.y); */
     }
     if (kcs[SDL_SCANCODE_A]) {
         circ.x = fmax(0, circ.x - ms);
+        rect.w--;
         /* printf("%f %f\n", circ.x, circ.y); */
     }
     if (kcs[SDL_SCANCODE_D]) {
         circ.x = fmax(0, circ.x + ms);
+        rect.w++;
         /* printf("%f %f\n", circ.x, circ.y); */
     }
     if (kcs[SDL_SCANCODE_R]) {
         rect_angle = rect_angle + 0.10;
+    }
+    if (kcs[SDL_SCANCODE_N]) {
+        border_radius += 1;
+    }
+    if (kcs[SDL_SCANCODE_M]) {
+        border_radius -= 1;
     }
 }
 
@@ -311,9 +322,9 @@ SDL_AppResult SDL_AppIterate(void *state)
     glClearColor(VEC4EXP(bg));
     glClear(GL_COLOR_BUFFER_BIT);
 
-    twod_draw_circlef(circ.x, circ.y, circ.z, COL_PINK);
-    twod_draw_rectf_tex(rect.x, rect.y, rect.z, rect.w, COL_WHITE, "dirt", rect_angle);
-    twod_draw_rectf_rounded(rect.x + 200, rect.y + 200, rect.z * 2, rect.w, 20, COL_WHITE, NULL, rect_angle);
+    /* twod_draw_circlef(circ.x, circ.y, circ.z, COL_PINK); */
+    /* twod_draw_rectf_tex(rect.x, rect.y, rect.z, rect.w, COL_WHITE, "dirt", rect_angle); */
+    twod_draw_rectf_rounded(rect.x, rect.y, rect.z, rect.w, border_radius, COL_WHITE, "dirt", rect_angle);
 
     for (auto c : cells) {
         twod_draw_rectf(c.x * 10, c.y * 10, 10, 10, COL_BLACK, rect_angle);
