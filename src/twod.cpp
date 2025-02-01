@@ -368,12 +368,17 @@ void twod_draw_rectf_rounded(float x, float y, float w, float h, float border_ra
 
     vec2s dims = {w, h};
     vec2s center = {x, y};
-    mat4s proj = glms_ortho(0, scr_w, 0, scr_h, 0, 1);
-    mat4s modl = glms_translate(GLMS_MAT4_IDENTITY, {x + 0.5f, y + 0.5f, 0});
+
     mat4s modl_uni = glms_translate(GLMS_MAT4_IDENTITY, {x + 0.5f, y + 0.5f, 0});
     modl_uni = glms_scale(modl_uni, {w, h, 1});
-    modl = glms_rotate(modl, angle, {0, 0, 1});
+
+    mat4s modl = GLMS_MAT4_IDENTITY;
+    modl = glms_translate(modl, {x + 0.5f, y + 0.5f, 0});
     modl = glms_scale(modl, {w, h, 1});
+    modl = glms_rotate(modl, angle, {0, 0, 1});
+
+    mat4s proj = glms_ortho(0, scr_w, 0, scr_h, 0, 1);
+
     mat4s mvp = mat4_mul(proj, modl);
 
     glUseProgram(shdr_rounded_corners);

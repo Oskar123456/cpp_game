@@ -15,7 +15,6 @@ out vec4 out_col;
 void main()
 {
     /* corner calc */
-
     float a = min(sqrt((border_rad * border_rad) / 2.0f), min(dims.y / 2.0f, dims.x / 2.0f));
 
     vec2 c1 = vec2(center.x - dims.x / 2.0f + a, center.y - dims.y / 2.0f + a);
@@ -63,9 +62,8 @@ void main()
     }
 
     /* coloring */
-    if (!use_tex) {
+    if (!use_tex)
         out_col = color;
-    }
     else if (color == vec4(1, 1, 1, 1))
         out_col = texture(tex, tex_coord);
     else
