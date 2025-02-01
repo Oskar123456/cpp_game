@@ -324,7 +324,9 @@ SDL_AppResult SDL_AppIterate(void *state)
 
     /* twod_draw_circlef(circ.x, circ.y, circ.z, COL_PINK); */
     /* twod_draw_rectf_tex(rect.x, rect.y, rect.z, rect.w, COL_WHITE, "dirt", rect_angle); */
-    twod_draw_rectf_rounded(rect.x, rect.y, rect.z, rect.w, border_radius, COL_WHITE, "dirt", rect_angle);
+    double angle = (t_now % 1000000000000) * ((M_PI_2 / 4) / 100000000.0);
+    /* printf("%f\n", abs(sin(angle)) * M_PI_2 / 4); */
+    twod_draw_rectf_rounded(rect.x, rect.y, rect.z, rect.w, border_radius, COL_WHITE, "dirt", abs(sin(angle)) * M_PI_2 / 4 - M_PI_2 / 2);
 
     for (auto c : cells) {
         twod_draw_rectf(c.x * 10, c.y * 10, 10, 10, COL_BLACK, rect_angle);
