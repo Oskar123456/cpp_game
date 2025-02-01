@@ -18,9 +18,9 @@ void main()
     if (dc > r * r)
         discard;
     
-    float border_thickness = 10;
-    float dp = r - dc;
-    float t = 1.0 - smoothstep(0.0, border_thickness, r - dp);
+    float border_thickness = 2;
+    float dp = r - sqrt(dc);
+    float t = 1.0 - smoothstep(0.0, border_thickness, dp);
     
     if (use_tex) {
         col_fin = mix(texture(tex, tex_coord), color, 0.5);
@@ -29,6 +29,4 @@ void main()
     }
     
     col_fin.w = 1.0 - t;
-    
-    /* col_fin = color; */
 }

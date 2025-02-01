@@ -146,19 +146,19 @@ void key_poll()
     }
     if (kcs[SDL_SCANCODE_W]) {
         circ.y = fmax(0, circ.y + ms);
-        printf("%f %f\n", circ.x, circ.y);
+        /* printf("%f %f\n", circ.x, circ.y); */
     }
     if (kcs[SDL_SCANCODE_S]) {
         circ.y = fmax(0, circ.y - ms);
-        printf("%f %f\n", circ.x, circ.y);
+        /* printf("%f %f\n", circ.x, circ.y); */
     }
     if (kcs[SDL_SCANCODE_A]) {
         circ.x = fmax(0, circ.x - ms);
-        printf("%f %f\n", circ.x, circ.y);
+        /* printf("%f %f\n", circ.x, circ.y); */
     }
     if (kcs[SDL_SCANCODE_D]) {
         circ.x = fmax(0, circ.x + ms);
-        printf("%f %f\n", circ.x, circ.y);
+        /* printf("%f %f\n", circ.x, circ.y); */
     }
     if (kcs[SDL_SCANCODE_R]) {
         rect_angle = rect_angle + 0.10;
@@ -313,9 +313,11 @@ SDL_AppResult SDL_AppIterate(void *state)
 
     twod_draw_circlef(circ.x, circ.y, circ.z, COL_PINK);
     twod_draw_rectf_tex(rect.x, rect.y, rect.z, rect.w, COL_WHITE, "dirt", rect_angle);
+    twod_draw_rectf_rounded(rect.x + 200, rect.y + 200, rect.z * 2, rect.w, 20, COL_WHITE, NULL, rect_angle);
+
     for (auto c : cells) {
-        twod_draw_rectf(c.x * 10, c.y * 10, 10, 10, COL_BLACK);
-        twod_draw_rectf_tex(c.x * 10 + 1, c.y * 10 + 1, 8, 8, COL_WHITE, "snow", 0);
+        twod_draw_rectf(c.x * 10, c.y * 10, 10, 10, COL_BLACK, rect_angle);
+        twod_draw_rectf_tex(c.x * 10 + 1, c.y * 10 + 1, 8, 8, COL_WHITE, "snow", rect_angle);
     }
 
     if (!paused)
@@ -326,7 +328,7 @@ SDL_AppResult SDL_AppIterate(void *state)
     }
 
     char fps_str[50] = "ooo";
-    sprintf(fps_str, "ft: %.1fms", t_avg / 1000000.0f);
+    sprintf(fps_str, "ft: %.1fms (%lu cells)", t_avg / 1000000.0f, cells.size());
     twod_draw_text(fps_str, strlen(fps_str), 10, 20, 0.3, COL_WHITE, 0);
 
     SDL_GL_SwapWindow(as->window);

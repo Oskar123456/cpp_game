@@ -6,5 +6,5 @@ out vec4 fin_col;
 
 void main()
 {
-   fin_col = color;
+    fin_col = color;
 }
