@@ -39,6 +39,7 @@ void twod_draw_rectf_rounded(float x, float y, float w, float h, float border_ra
 u32 twod_create_tex(const char* img_path, const char* alias);
 u32 twod_create_tex_a(const char* img_path, const char* alias);
 float twod_get_text_length(const char* txt, u32 txt_len, float scale);
+void twod_get_text_dims(const char* txt, u32 txt_len, float scale, float* w, float* h);
 void screenshot();
 
 #define COL_TOKYO {0x1A / 255.0f, 0x1B / 255.0f, 0x26 / 255.0f, 1.0f}

@@ -525,6 +525,20 @@ float twod_get_text_length(const char* txt, u32 txt_len, float scale)
     return len;
 }
 
+void twod_get_text_dims(const char* txt, u32 txt_len, float scale, float* w, float* h)
+{
+    *w = 0;
+    *h = 0;
+    for (int i = 0; i < txt_len; ++i) {
+        u8 c = txt[i];
+        if (c > 255 || !glyphs[c].tex)
+            c = '?';
+        *w += (glyphs[c].adv >> 6) * scale;
+        if (glyphs[c].sz.y * scale > *h)
+            *h = glyphs[c].sz.y * scale;
+    }
+}
+
 void screenshot()
 {
     time_t t;

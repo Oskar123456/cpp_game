@@ -69,6 +69,6 @@ void main()
     else
         out_col = mix(texture(tex, tex_coord), color, 0.5);
 
-    out_col.w = border_fuzz;
+    out_col.w = out_col.w - (1 - border_fuzz);
 }
 

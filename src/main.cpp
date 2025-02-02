@@ -23,6 +23,7 @@
 #include <util.h>
 #include <world.h>
 #include <twod.h>
+#include <menu.h>
 #include <logging.h>
 
 #include <map>
@@ -37,7 +38,7 @@ using namespace std;
 /* TEMP */
 /* TEMP */
 static int scr_w, scr_h;
-static SDL_Time t_last_update, t_now, t_delta;
+static SDL_Time t_start, t_last_update, t_now, t_delta;
 
 static SDL_Time t_hist[60];
 static int t_hist_idx;
@@ -53,46 +54,7 @@ static bool exit_first = true;
 
 extern char **environ;
 
-static u64 gol_updates;
-set<vec2s> cells;
-bool operator<(const vec2s& a, const vec2s& b) {return tie(a.x, a.y) < tie(b.x, b.y);}
-
-set<vec2s> gol_next_gen(set<vec2s> prev_gen)
-{
-    set<vec2s> next_gen;
-    for (auto c : prev_gen) {
-        int neighbors = 0;
-        for (int i = -1; i < 2; ++i) {
-            for (int j = -1; j < 2; ++j) {
-                if (!i && !j)
-                    continue;
-                vec2s cn = {c.x + j, c.y + i};
-                if (prev_gen.count({cn.x, cn.y})) {
-                    neighbors++;
-                }
-                else {
-                    int cn_neighbors = 0;
-                    for (int k = -1; k < 2; ++k) {
-                        for (int l = -1; l < 2; ++l) {
-                            if (!k && !l)
-                                continue;
-                            if (prev_gen.count({cn.x + l, cn.y + k})) {
-                                cn_neighbors++;
-                            }
-                        }
-                    }
-                    if (cn_neighbors == 3) {
-                        next_gen.emplace(cn);
-                    }
-                }
-            }
-        }
-        if (neighbors >= 2 && neighbors <= 3) {
-            next_gen.emplace(c);
-        }
-    }
-    return next_gen;
-}
+static Button btn;
 
 /* TEMP */
 /* TEMP */
@@ -115,12 +77,6 @@ void mouse_poll()
     float x, y;
     SDL_MouseButtonFlags mf = SDL_GetMouseState(&x, &y);
     if (mf & SDL_BUTTON_LEFT) {
-        int cx = x / 10;
-        int cy = y / 10;
-        vec2s cc = {(float)cx, (float)cy};
-        if (!cells.count(cc)) {
-            cells.emplace(cc);
-        }
     }
 }
 
@@ -280,27 +236,44 @@ SDL_AppResult SDL_AppInit(void **state, int argc, char *argv[])
     glEnable(GL_MULTISAMPLE);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    /* glEnable(GL_MULTISAMPLE); */
+    glHint(GL_LINE_SMOOTH_HINT, GL_NICEST );
+    glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST );
+    glEnable(GL_LINE_SMOOTH);
+    glEnable(GL_POLYGON_SMOOTH);
 
     SDL_GetCurrentTime(&t_last_update);
+    SDL_GetCurrentTime(&t_start);
 
     SDL_GetWindowSizeInPixels(as->window, &scr_w, &scr_h);
     twod_update_scr_dims(scr_w, scr_h);
     twod_init();
 
-    cells.emplace((vec2s){11, 11});
-    cells.emplace((vec2s){11, 12});
-    cells.emplace((vec2s){11, 13});
-    cells.emplace((vec2s){12, 11});
-    cells.emplace((vec2s){10, 12});
+    /* cells.emplace((vec2s){11, 11}); */
+    /* cells.emplace((vec2s){11, 12}); */
+    /* cells.emplace((vec2s){11, 13}); */
+    /* cells.emplace((vec2s){12, 11}); */
+    /* cells.emplace((vec2s){10, 12}); */
 
     /* text */
     /* testing */
-    /* twod_create_tex_a("font_text", "gol"); */
     twod_create_tex("/home/oskar/Documents/cpp_game/resources/textures/minecraft_grass_side.jpg", "dirt");
     twod_create_tex("/home/oskar/Documents/cpp_game/resources/textures/minecraft_snow_top.jpg", "snow");
 
+    btn.text = "testing button";
+    btn.pos = {600, 100};
+    btn.color_fg = COL_PINK;
+    btn.color_bg = {0.1f, 0.3f, 0.7f, 0.5f};
+    btn.width = 300;
+    btn.height = btn.width / 4;
+    btn.border_radius = btn.width / 5;
+    btn.rotation = 0;
+
     return SDL_APP_CONTINUE;
 }
+
+static float angles[120];
+static int angles_idx;
 
 SDL_AppResult SDL_AppIterate(void *state)
 {
@@ -322,27 +295,14 @@ SDL_AppResult SDL_AppIterate(void *state)
     glClearColor(VEC4EXP(bg));
     glClear(GL_COLOR_BUFFER_BIT);
 
-    /* twod_draw_circlef(circ.x, circ.y, circ.z, COL_PINK); */
-    /* twod_draw_rectf_tex(rect.x, rect.y, rect.z, rect.w, COL_WHITE, "dirt", rect_angle); */
-    double angle = (t_now % 1000000000000) * ((M_PI_2 / 4) / 100000000.0);
-    /* printf("%f\n", abs(sin(angle)) * M_PI_2 / 4); */
-    /* twod_draw_rectf_rounded(rect.x, rect.y, rect.z, rect.w, border_radius, COL_WHITE, "dirt", abs(sin(angle)) * M_PI_2 / 4 - M_PI_2 / 2); */
     twod_draw_rectf_rounded(rect.x, rect.y, rect.z, rect.w, border_radius, COL_WHITE, "dirt", rect_angle);
+    menu_button_render(btn);
 
-    for (auto c : cells) {
-        twod_draw_rectf(c.x * 10, c.y * 10, 10, 10, COL_BLACK, rect_angle);
-        twod_draw_rectf_tex(c.x * 10 + 1, c.y * 10 + 1, 8, 8, COL_WHITE, "snow", rect_angle);
+    if (!paused) {
     }
 
-    if (!paused)
-    {
-        if (++gol_updates % 5 == 0) {
-            cells = gol_next_gen(cells);
-        }
-    }
-
-    char fps_str[50] = "ooo";
-    sprintf(fps_str, "ft: %.1fms (%lu cells)", t_avg / 1000000.0f, cells.size());
+    char fps_str[50];
+    sprintf(fps_str, "ft: %.1fms", t_avg / 1000000.0f);
     twod_draw_text(fps_str, strlen(fps_str), 10, 20, 0.3, COL_WHITE, 0);
 
     SDL_GL_SwapWindow(as->window);
