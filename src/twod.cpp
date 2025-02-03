@@ -168,7 +168,7 @@ void twod_init()
     if (FT_Init_FreeType(&ft)) {
         LOG_ERROR("could not init freetype");
     }
-    if (FT_New_Face(ft, "/home/oskar/.fonts/lexica-ultra/lexica-ultralegible-release/fonts/ttf/LexicaUltralegible-Regular.ttf", 0, &ft_face)) {
+    if (FT_New_Face(ft, "/home/oskar/.fonts/overpass/overpass/overpass-regular.otf", 0, &ft_face)) {
         LOG_ERROR("could not load face with freetype");
     }
 
@@ -374,8 +374,8 @@ void twod_draw_rectf_rounded(float x, float y, float w, float h, float border_ra
 
     mat4s modl = GLMS_MAT4_IDENTITY;
     modl = glms_translate(modl, {x + 0.5f, y + 0.5f, 0});
-    modl = glms_scale(modl, {w, h, 1});
     modl = glms_rotate(modl, angle, {0, 0, 1});
+    modl = glms_scale(modl, {w, h, 1});
 
     mat4s proj = glms_ortho(0, scr_w, 0, scr_h, 0, 1);
 
@@ -398,10 +398,39 @@ void twod_draw_rectf_rounded(float x, float y, float w, float h, float border_ra
     glBindVertexArray(0);
 }
 
+void twod_get_text_dims(const char* txt, u32 txt_len, float scale, float* w, float* h)
+{
+    *w = 0;
+    *h = 0;
+    for (int i = 0; i < txt_len; ++i) {
+        u8 c = txt[i];
+        if (c > 255 || !glyphs[c].tex)
+            c = '?';
+        *w += (glyphs[c].adv >> 6) * scale;
+        if (glyphs[c].sz.y * scale > *h)
+            *h = glyphs[c].sz.y * scale;
+    }
+}
+
+float twod_get_text_length(const char* txt, u32 txt_len, float scale)
+{
+    float len = 0;
+    for (int i = 0; i < txt_len; ++i) {
+        u8 c = txt[i];
+        if (c > 255 || !glyphs[c].tex)
+            c = '?';
+        len += (glyphs[c].adv >> 6) * scale;
+    }
+    return len;
+}
+
 void twod_draw_text(const char* txt, u32 txt_len, float x, float y, float scale, Color col, float angle)
 {
     y = scr_h - y;
-    float x_o = x, y_o = y;
+
+    float w, h;
+    twod_get_text_dims(txt, txt_len, scale, &w, &h);
+    float x_o = x + w / 2.0f, y_o = y + h / 2.0f;
 
     glUseProgram(shdr_text);
     mat4s proj = glms_ortho(0, scr_w, 0, scr_h, 0, 1);
@@ -511,32 +540,6 @@ u32 twod_create_tex_a(const char* img_path, const char* alias)
     stbi_image_free(img);
     _twod_tex_map[alias] = tex;
     return tex;
-}
-
-float twod_get_text_length(const char* txt, u32 txt_len, float scale)
-{
-    float len = 0;
-    for (int i = 0; i < txt_len; ++i) {
-        u8 c = txt[i];
-        if (c > 255 || !glyphs[c].tex)
-            c = '?';
-        len += (glyphs[c].adv >> 6) * scale;
-    }
-    return len;
-}
-
-void twod_get_text_dims(const char* txt, u32 txt_len, float scale, float* w, float* h)
-{
-    *w = 0;
-    *h = 0;
-    for (int i = 0; i < txt_len; ++i) {
-        u8 c = txt[i];
-        if (c > 255 || !glyphs[c].tex)
-            c = '?';
-        *w += (glyphs[c].adv >> 6) * scale;
-        if (glyphs[c].sz.y * scale > *h)
-            *h = glyphs[c].sz.y * scale;
-    }
 }
 
 void screenshot()

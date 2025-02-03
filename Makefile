@@ -19,7 +19,7 @@ OBJEXT      := o
 
 #Flags, Libraries and Includes
 CFLAGS      := -fopenmp -g -Wall -Wno-unused-variable -Wno-sign-compare
-LIB         := -lm -lSDL3 -lSDL3_mixer -lfreetype
+LIB         := -lm -lSDL3 -lfreetype
 INC         := -I$(INCDIR) -I$(LIBDIR) -I/usr/include/freetype2 -I/usr/include/libpng16
 INCDEP      := -I$(INCDIR) -I/usr/include/freetype2 -I/usr/include/libpng16
 

@@ -184,7 +184,7 @@ SDL_AppResult SDL_AppInit(void **state, int argc, char *argv[])
     *state = (void*)&app_state;
     AppState *as = (AppState*)*state;
 
-    if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO)){
+    if (!SDL_Init(SDL_INIT_VIDEO)){
         return SDL_APP_FAILURE;
     }
 
@@ -257,8 +257,8 @@ SDL_AppResult SDL_AppInit(void **state, int argc, char *argv[])
 
     /* text */
     /* testing */
-    twod_create_tex("/home/oskar/Documents/cpp_game/resources/textures/minecraft_grass_side.jpg", "dirt");
-    twod_create_tex("/home/oskar/Documents/cpp_game/resources/textures/minecraft_snow_top.jpg", "snow");
+    twod_create_tex("/home/oskar/Documents/cpp_game/resources/textures/minecraft_grass_dirt.jpg", "dirt");
+    // twod_create_tex("/home/oskar/Documents/cpp_game/resources/textures/minecraft_snow_top.jpg", "snow");
 
     btn.text = "testing button";
     btn.pos = {600, 100};
@@ -296,7 +296,8 @@ SDL_AppResult SDL_AppIterate(void *state)
     glClear(GL_COLOR_BUFFER_BIT);
 
     twod_draw_rectf_rounded(rect.x, rect.y, rect.z, rect.w, border_radius, COL_WHITE, "dirt", rect_angle);
-    menu_button_render(btn);
+    menu_button_update(btn, t_start, t_now);
+    menu_button_render(btn, t_start, t_now);
 
     if (!paused) {
     }
@@ -337,7 +338,7 @@ SDL_AppResult SDL_AppEvent(void *state, SDL_Event *event)
 
 void SDL_AppQuit(void *state, SDL_AppResult result)
 {
-    printf("SDL_AppQuit... (%d)\n", result);
+    printf("SDL_AppQuit... (%s) (%d)\n", SDL_GetError(), result);
     AppState *as = (AppState*)state;
 
     SDL_GL_DestroyContext(as->gl_context);
