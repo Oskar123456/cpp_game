@@ -132,6 +132,14 @@ void key_poll()
     }
 }
 
+SDL_AppResult mouseclick_callback(SDL_MouseButtonEvent e)
+{
+    if (e.button & SDL_BUTTON_LEFT && e.down)
+        menu_button_check_if_clicked(btn, e.x, e.y);
+
+    return SDL_APP_CONTINUE;
+}
+
 SDL_AppResult key_callback(SDL_KeyboardEvent kb_event)
 {
     switch (kb_event.scancode) {
@@ -177,6 +185,11 @@ struct MetaData metadata[] =
     { SDL_PROP_APP_METADATA_COPYRIGHT_STRING, "LOL" },
     { SDL_PROP_APP_METADATA_TYPE_STRING, "LOL" }
 };
+
+void pp()
+{
+    printf("click\n");
+}
 
 SDL_AppResult SDL_AppInit(void **state, int argc, char *argv[])
 {
@@ -257,7 +270,7 @@ SDL_AppResult SDL_AppInit(void **state, int argc, char *argv[])
 
     /* text */
     /* testing */
-    twod_create_tex("/home/oskar/Documents/cpp_game/resources/textures/minecraft_grass_dirt.jpg", "dirt");
+    twod_create_tex("/home/oskar/Documents/cpp_game/resources/textures/minecraft_grass_side.jpg", "dirt");
     // twod_create_tex("/home/oskar/Documents/cpp_game/resources/textures/minecraft_snow_top.jpg", "snow");
 
     btn.text = "testing button";
@@ -268,12 +281,10 @@ SDL_AppResult SDL_AppInit(void **state, int argc, char *argv[])
     btn.height = btn.width / 4;
     btn.border_radius = btn.width / 5;
     btn.rotation = 0;
+    btn.on_click = pp;
 
     return SDL_APP_CONTINUE;
 }
-
-static float angles[120];
-static int angles_idx;
 
 SDL_AppResult SDL_AppIterate(void *state)
 {
@@ -295,15 +306,22 @@ SDL_AppResult SDL_AppIterate(void *state)
     glClearColor(VEC4EXP(bg));
     glClear(GL_COLOR_BUFFER_BIT);
 
+    i64 rot_interval_ms = 1000;
+    i64 dt_ms = (t_now - t_start) / 1000000;
+    float angle = dt_ms * (2 * M_PI / rot_interval_ms);
+
+    btn.width = rect.z * 4;
+    btn.height = rect.w;
+
     twod_draw_rectf_rounded(rect.x, rect.y, rect.z, rect.w, border_radius, COL_WHITE, "dirt", rect_angle);
-    menu_button_update(btn, t_start, t_now);
-    menu_button_render(btn, t_start, t_now);
+    menu_button_update(btn, t_start, t_now, t_delta);
+    menu_button_render(btn, t_start, t_now, t_delta);
 
     if (!paused) {
     }
 
     char fps_str[50];
-    sprintf(fps_str, "ft: %.1fms", t_avg / 1000000.0f);
+    sprintf(fps_str, "ft: %.1fms (dt: %.2fs)", t_avg / 1000000.0f, dt_ms / 1000.0f);
     twod_draw_text(fps_str, strlen(fps_str), 10, 20, 0.3, COL_WHITE, 0);
 
     SDL_GL_SwapWindow(as->window);
@@ -330,8 +348,8 @@ SDL_AppResult SDL_AppEvent(void *state, SDL_Event *event)
         if ((res = key_callback(event->key)))
             return res;
 
-    /* if (event->type == SDL_EVENT_MOUSE_BUTTON_DOWN) */
-    /*     mouseclick_callback(event->key) */
+    if (event->type == SDL_EVENT_MOUSE_BUTTON_DOWN)
+        mouseclick_callback(event->button);
 
     return SDL_APP_CONTINUE;
 }

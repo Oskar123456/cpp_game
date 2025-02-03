@@ -26,12 +26,24 @@ struct Button {
     Color color_fg_active, color_bg_active;
     vec2s pos;
     int width, height, border_radius;
-    float rotation;
-    bool active;
+    float rotation_default, rotation;
+    i64 t_anim_ms;
+    void (*anim)(Button&, i64, i64, i64);
+    void (*on_click)(void);
+    bool active, hover;
 };
 
-void menu_button_render(Button& btn, i64 t_start, i64 t_now);
-void menu_button_update(Button& btn, i64 t_start, i64 t_now);
+struct Menu {
+    Button* buttons;
+    int num_buttons;
+};
+
+void menu_update();
+void menu_render();
+void menu_button_render(Button& btn, i64 t_start, i64 t_now, i64 dt);
+void menu_button_update(Button& btn, i64 t_start, i64 t_now, i64 dt);
+void menu_button_check_if_clicked(Button& btn, float x, float y);
+void menu_button_anim_squiggle(Button& btn, i64 t_start, i64 t_now, i64 dt);
 
 #endif
 
