@@ -16,10 +16,10 @@
 #ifndef TWOD_H
 #define TWOD_H
 
+#include <util.h>
 #define CGLM_USE_ANONYMOUS_STRUCT 1
 #define CGLM_OMIT_NS_FROM_STRUCT_API 1
 #include <cglm/struct.h>
-#include <util.h>
 
 #define VEC4EXP(v) (v).x, (v).y, (v).z, (v).w
 

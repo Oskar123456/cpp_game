@@ -1,17 +1,20 @@
 #version 330 core
 
 in vec2 tex_coord;
+in vec3 normal;
 
 uniform sampler2D tex;
 uniform vec4 color;
-uniform bool use_tex
+uniform bool use_tex;
 
-out vec4 out_col;
+out vec4 final_color;
 
 void main()
 {
-    if (color == vec4(1, 1, 1, 1))
-        out_col = texture(tex, tex_coord);
+    if (!use_tex)
+        final_color = color;
+    else if (color == vec4(1, 1, 1, 1))
+        final_color = texture(tex, tex_coord);
     else
-        out_col = mix(texture(tex, tex_coord), color, 0.5);
+        final_color = mix(texture(tex, tex_coord), color, 0.5);
 }

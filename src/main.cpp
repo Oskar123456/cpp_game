@@ -24,6 +24,7 @@
 #include <world.h>
 #include <twod.h>
 #include <threed.h>
+#include <camera.h>
 #include <menu.h>
 #include <logging.h>
 
@@ -46,6 +47,9 @@ static int t_hist_idx;
 
 static vec3s circ = {400, 400, 100};
 static vec4s rect = {100, 100, 100, 100};
+vec3s cube_pos = {0, 0, -10};
+vec3s cube_rot_axis = {0, 1, 0};
+float cube_rot = 0;
 static float rect_angle = M_PI / 4;
 static int border_radius = 0;
 
@@ -56,6 +60,8 @@ static bool exit_first = true;
 extern char **environ;
 
 static Button btn;
+
+Camera cam;
 
 /* TEMP */
 /* TEMP */
@@ -73,7 +79,7 @@ struct AppState {
 
 struct AppState app_state;
 
-void mouse_poll()
+void poll_mouse()
 {
     float x, y;
     SDL_MouseButtonFlags mf = SDL_GetMouseState(&x, &y);
@@ -81,7 +87,7 @@ void mouse_poll()
     }
 }
 
-void key_poll()
+void poll_key()
 {
     int n;
     const bool *kcs = SDL_GetKeyboardState(&n);
@@ -89,27 +95,34 @@ void key_poll()
     int ms = 4;
     if (kcs[SDL_SCANCODE_UP]) {
         rect.y = fmax(INT32_MIN, rect.y - ms);
+        cube_pos.y += 0.1f;
     }
     if (kcs[SDL_SCANCODE_DOWN]) {
         rect.y = fmax(INT32_MIN, rect.y + ms);
+        cube_pos.y -= 0.1f;
     }
     if (kcs[SDL_SCANCODE_LEFT]) {
         rect.x = fmax(INT32_MIN, rect.x - ms);
+        cube_pos.x -= 0.1f;
     }
     if (kcs[SDL_SCANCODE_RIGHT]) {
         rect.x = fmax(INT32_MIN, rect.x + ms);
+        cube_pos.x += 0.1f;
     }
     if (kcs[SDL_SCANCODE_R]) {
         rect_angle = rect_angle + 0.10;
+        cube_rot += 0.1f;
     }
     if (kcs[SDL_SCANCODE_W]) {
         circ.y = fmax(0, circ.y + ms);
         rect.z++;
+        cube_pos.z -= 0.1f;
         /* printf("%f %f\n", circ.x, circ.y); */
     }
     if (kcs[SDL_SCANCODE_S]) {
         circ.y = fmax(0, circ.y - ms);
         rect.z--;
+        cube_pos.z += 0.1f;
         /* printf("%f %f\n", circ.x, circ.y); */
     }
     if (kcs[SDL_SCANCODE_A]) {
@@ -166,6 +179,8 @@ SDL_AppResult key_callback(SDL_KeyboardEvent kb_event)
             circ.z -= 5;
             break;
         case SDL_SCANCODE_SPACE:
+            cube_rot_axis.y = !cube_rot_axis.y;
+            cube_rot_axis.x = !cube_rot_axis.x;
             paused = !paused;
             printf("%s\n", (paused) ? "paused" : "unpaused");
             break;
@@ -247,14 +262,14 @@ SDL_AppResult SDL_AppInit(void **state, int argc, char *argv[])
         return SDL_APP_FAILURE;
     }
 
-    glEnable(GL_MULTISAMPLE);
+    /* glEnable(GL_MULTISAMPLE); */
+    /* glHint(GL_LINE_SMOOTH_HINT, GL_NICEST ); */
+    /* glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST ); */
+    /* glEnable(GL_LINE_SMOOTH); */
+    /* glEnable(GL_POLYGON_SMOOTH); */
+    glEnable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    /* glEnable(GL_MULTISAMPLE); */
-    glHint(GL_LINE_SMOOTH_HINT, GL_NICEST );
-    glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST );
-    glEnable(GL_LINE_SMOOTH);
-    glEnable(GL_POLYGON_SMOOTH);
 
     SDL_GetCurrentTime(&t_last_update);
     SDL_GetCurrentTime(&t_start);
@@ -273,6 +288,7 @@ SDL_AppResult SDL_AppInit(void **state, int argc, char *argv[])
     /* text */
     /* testing */
     twod_create_tex("/home/oskar/Documents/cpp_game/resources/textures/minecraft_grass_side.jpg", "dirt");
+    threed_create_tex("/home/oskar/Documents/cpp_game/resources/textures/minecraft_grass_side.jpg", "dirt");
     // twod_create_tex("/home/oskar/Documents/cpp_game/resources/textures/minecraft_snow_top.jpg", "snow");
 
     btn.text = "testing button";
@@ -284,6 +300,12 @@ SDL_AppResult SDL_AppInit(void **state, int argc, char *argv[])
     btn.border_radius = btn.width / 5;
     btn.rotation = 0;
     btn.on_click = pp;
+
+    cam.up = {0, 1, 0};
+    cam.at = {0, 0, -10};
+    cam.pos = {0, 10, 10};
+    cam.fov = 45;
+    camera_update(cam);
 
     return SDL_APP_CONTINUE;
 }
@@ -301,12 +323,12 @@ SDL_AppResult SDL_AppIterate(void *state)
         t_avg += t_hist[i];
     t_avg /= 60;
 
-    key_poll();
-    mouse_poll();
+    poll_key();
+    poll_mouse();
 
     Color bg = COL_TOKYO;
     glClearColor(VEC4EXP(bg));
-    glClear(GL_COLOR_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     i64 rot_interval_ms = 1000;
     i64 dt_ms = (t_now - t_start) / 1000000;
@@ -315,9 +337,11 @@ SDL_AppResult SDL_AppIterate(void *state)
     btn.width = rect.z * 4;
     btn.height = rect.w;
 
-    twod_draw_rectf_rounded(rect.x, rect.y, rect.z, rect.w, border_radius, COL_WHITE, "dirt", rect_angle);
-    menu_button_update(btn, t_start, t_now, t_delta);
-    menu_button_render(btn, t_start, t_now, t_delta);
+    /* twod_draw_rectf_rounded(rect.x, rect.y, rect.z, rect.w, border_radius, COL_WHITE, "dirt", rect_angle); */
+    /* menu_button_update(btn, t_start, t_now, t_delta); */
+    /* menu_button_render(btn, t_start, t_now, t_delta); */
+
+    threed_render_cube(cam.view_proj, cube_pos, cube_rot, cube_rot_axis, COL_WHITE, "dirt");
 
     if (!paused) {
     }
@@ -325,6 +349,12 @@ SDL_AppResult SDL_AppIterate(void *state)
     char fps_str[50];
     sprintf(fps_str, "ft: %.1fms (dt: %.2fs)", t_avg / 1000000.0f, dt_ms / 1000.0f);
     twod_draw_text(fps_str, strlen(fps_str), 10, 20, 0.3, COL_WHITE, 0);
+    sprintf(fps_str, "cam: (%.1f, %.1f, %.1f) looking at: (%.1f, %.1f, %.1f)",
+            cam.pos.x, cam.pos.y, cam.pos.z,
+            cam.at.x, cam.at.y, cam.at.z);
+    twod_draw_text(fps_str, strlen(fps_str), 10, 45, 0.3, COL_WHITE, 0);
+    sprintf(fps_str, "cube: (%.1f, %.1f, %.1f)", cube_pos.x, cube_pos.y, cube_pos.z);
+    twod_draw_text(fps_str, strlen(fps_str), 10, 70, 0.3, COL_WHITE, 0);
 
     SDL_GL_SwapWindow(as->window);
 

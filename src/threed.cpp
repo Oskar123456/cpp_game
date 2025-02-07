@@ -1,5 +1,4 @@
 /*=======================================
- *
  * cpp_game
  *
  *
@@ -16,20 +15,22 @@
 #include <twod.h>
 #include <threed.h>
 #include <logging.h>
-/* #include <SDL3/SDL.h> */
 #include <glad/glad.h>
 
-/* #include <ft2build.h> */
-/* #include FT_FREETYPE_H */
 #include <stb/stb_image.h>
 #include <stb/stb_image_write.h>
 
+#include <map>
+
 using namespace std;
+
+static map<string, u32> textures;
 
 static u32 vao_cube;
 static u32 shader_cube;
 static u32 shader_cube_mvp;
 static u32 shader_cube_col;
+static u32 shader_cube_use_tex;
 
 static float vs_cube[] = {
 /*  POSITION            |TEX COORD   |NORMAL           */
@@ -55,9 +56,9 @@ static float vs_cube[] = {
      0.5f, -0.5f, -0.5f, 1.0f, 0.0f,  1.0f,  0.0f,  0.0f,
 /*  top                                                */
     -0.5f,  0.5f,  0.5f, 0.0f, 0.0f,  0.0f,  1.0f,  0.0f,
-     0.5f,  0.5f, -0.5f, 0.0f, 1.0f,  0.0f,  1.0f,  0.0f,
+    -0.5f,  0.5f, -0.5f, 0.0f, 1.0f,  0.0f,  1.0f,  0.0f,
      0.5f,  0.5f, -0.5f, 1.0f, 1.0f,  0.0f,  1.0f,  0.0f,
-    -0.5f,  0.5f,  0.5f, 1.0f, 0.0f,  0.0f,  1.0f,  0.0f,
+     0.5f,  0.5f,  0.5f, 1.0f, 0.0f,  0.0f,  1.0f,  0.0f,
 /*  bottom                                             */
     -0.5f, -0.5f, -0.5f, 0.0f, 0.0f,  0.0f, -1.0f,  0.0f,
     -0.5f, -0.5f,  0.5f, 0.0f, 1.0f,  0.0f, -1.0f,  0.0f,
@@ -65,66 +66,104 @@ static float vs_cube[] = {
      0.5f, -0.5f, -0.5f, 1.0f, 0.0f,  0.0f, -1.0f,  0.0f,
 };
 
-static u32 eab_cube[] = { 0, 1, 2, 0, 2, 3 };
+static u32 eab_cube[] = {
+    0, 1, 2, 0, 2, 3,
+    4, 5, 6, 4, 6, 7,
+    8, 9, 10, 8, 10, 11,
+    12, 13, 14, 12, 14, 15,
+    16, 17, 18, 16, 18, 19,
+    20, 21, 22, 20, 22, 23
+};
 
-void threed_render_cube(vec2s& pos, mat4s& rot, Color col)
+void threed_render_cube(mat4s& view_proj, vec3s& pos, float angle, vec3s rot_axis, Color col, const char* tex)
 {
+    if (tex && !textures.count(tex)) {
+        LOG_ERROR("could not find texture %s", tex);
+        tex = NULL;
+    }
+
+    mat4s mvp = GLMS_MAT4_IDENTITY;
+    mvp = mat4_mul(mvp, view_proj);
+    mvp = glms_translate(mvp, pos);
+    mvp = glms_rotate(mvp, angle, rot_axis);
+
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
+    glUseProgram(shader_cube);
+    glBindTexture(GL_TEXTURE_2D, textures[tex]);
+    glBindVertexArray(vao_cube);
+    glUniformMatrix4fv(shader_cube_mvp, 1, GL_FALSE, (float*)&mvp);
+    glUniform4fv(shader_cube_col, 1, (float*)&col);
+    glUniform1i(shader_cube_use_tex, tex != NULL);
+    glDrawElements(GL_TRIANGLES, sizeof(eab_cube), GL_UNSIGNED_INT, 0);
+    glBindVertexArray(0);
+
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+}
+
+u32 threed_create_tex(const char* img_path, const char* alias)
+{
+    u32 tex;
+    glGenTextures(1, &tex);
+    glBindTexture(GL_TEXTURE_2D, tex);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    int w, h, n_chans;
+    stbi_set_flip_vertically_on_load(true);
+    u8* img = stbi_load(img_path, &w, &h, &n_chans, 0);
+
+    if (img) {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, img);
+        glGenerateMipmap(GL_TEXTURE_2D);
+    }
+    else {
+        LOG_ERROR("err loading texture %s", img_path);
+        return 0;
+    }
+
+    if (textures.count(alias)) {
+        LOG_WARN("texture %s exists, overwriting...", alias);
+    }
+
+    stbi_image_free(img);
+    textures[alias] = tex;
+    return tex;
 }
 
 void threed_init()
 {
     /* text */
-    /* FT_Library ft; */
-    /* FT_Face ft_face; */
-    /* if (FT_Init_FreeType(&ft)) { */
-    /*     LOG_ERROR("could not init freetype"); */
-    /* } */
-    /* if (FT_New_Face(ft, "/home/oskar/.fonts/overpass/overpass/overpass-regular.otf", 0, &ft_face)) { */
-    /*     LOG_ERROR("could not load face with freetype"); */
-    /* } */
-
-    /* FT_Set_Pixel_Sizes(ft_face, 0, 48); */
-    /* glPixelStorei(GL_UNPACK_ALIGNMENT, 1); */
-    /* for (int i = 0; i < 256; ++i) { */
-    /*     if (FT_Load_Char(ft_face, i, FT_LOAD_RENDER)) */
-    /*         continue; */
-    /*     u32 tex; */
-    /*     glGenTextures(1, &tex); */
-    /*     glBindTexture(GL_TEXTURE_2D, tex); */
-    /*     glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, */
-    /*             ft_face->glyph->bitmap.width, ft_face->glyph->bitmap.rows, */
-    /*             0, GL_RED, GL_UNSIGNED_BYTE, ft_face->glyph->bitmap.buffer); */
-    /*     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); */
-    /*     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE); */
-    /*     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR); */
-    /*     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR); */
-    /*     glyphs[i] = (Glyph){tex, {(float)ft_face->glyph->bitmap.width, (float)ft_face->glyph->bitmap.rows}, */
-    /*         {(float)ft_face->glyph->bitmap_left, (float)ft_face->glyph->bitmap_top}, */
-    /*         ft_face->glyph->advance.x}; */
-    /* } */
-    /* FT_Done_Face(ft_face); */
-    /* FT_Done_FreeType(ft); */
-
     /* vertex data */
-    u32 vbo_cube;
+    u32 vbo_cube, ebo_cube;
     glGenVertexArrays(1, &vao_cube);
     glGenBuffers(1, &vbo_cube);
+    glGenBuffers(1, &ebo_cube);
+
     glBindVertexArray(vao_cube);
+
     glBindBuffer(GL_ARRAY_BUFFER, vbo_cube);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vs_cube), vs_cube, GL_STATIC_DRAW);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo_cube);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(eab_cube), eab_cube, GL_STATIC_DRAW);
+
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)3);
-    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)5);
     glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(5 * sizeof(float)));
     glEnableVertexAttribArray(2);
+
     glBindVertexArray(0);
 
     /* shaders */
-    /* shdr_simp = util_shader_load("shaders/twod_simp.vs", "shaders/twod_simp.fs"); */
-    /* shdr_simp_loc_mvp = glGetUniformLocation(shdr_simp, "mvp"); */
-    /* shdr_simp_loc_col = glGetUniformLocation(shdr_simp, "color"); */
+    shader_cube = util_shader_load("shaders/threed_cube.vs", "shaders/threed_cube.fs");
+    shader_cube_mvp = glGetUniformLocation(shader_cube, "mvp");
+    shader_cube_col = glGetUniformLocation(shader_cube, "color");
+    shader_cube_use_tex = glGetUniformLocation(shader_cube, "use_tex");
 }
 
 

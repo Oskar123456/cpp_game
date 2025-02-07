@@ -438,7 +438,7 @@ void twod_draw_text(const char* txt, u32 txt_len, float x, float y, float scale,
     /* proj = glms_rotate(proj, angle, {0, 0, 1}); */
     glUniformMatrix4fv(shdr_text_loc_proj, 1, GL_FALSE, (float*)&proj);
     glUniform4fv(shdr_text_loc_col, 1, (float*)&col);
-    glActiveTexture(GL_TEXTURE0);
+    /* glActiveTexture(GL_TEXTURE0); */
     glBindVertexArray(vao_text);
 
     for (int i = 0; i < txt_len; ++i) {
