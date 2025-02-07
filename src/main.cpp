@@ -23,6 +23,7 @@
 #include <util.h>
 #include <world.h>
 #include <twod.h>
+#include <threed.h>
 #include <menu.h>
 #include <logging.h>
 
@@ -261,6 +262,7 @@ SDL_AppResult SDL_AppInit(void **state, int argc, char *argv[])
     SDL_GetWindowSizeInPixels(as->window, &scr_w, &scr_h);
     twod_update_scr_dims(scr_w, scr_h);
     twod_init();
+    threed_init();
 
     /* cells.emplace((vec2s){11, 11}); */
     /* cells.emplace((vec2s){11, 12}); */

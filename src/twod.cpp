@@ -16,6 +16,7 @@
 #include <twod.h>
 #include <logging.h>
 
+#include <glad/glad.h>
 #include <ft2build.h>
 #include FT_FREETYPE_H
 #define STB_IMAGE_IMPLEMENTATION

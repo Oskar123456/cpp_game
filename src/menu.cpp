@@ -14,6 +14,7 @@
  *=======================================*/
 
 #include "menu.h"
+#include <SDL3/SDL.h>
 
 using namespace std;
 

@@ -13,8 +13,10 @@
  *
  *=======================================*/
 
-#ifndef THREE_H
-#define THREE_H
+#ifndef THREED_H
+#define THREED_H
+
+void threed_init();
 
 #endif
 
