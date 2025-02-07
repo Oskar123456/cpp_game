@@ -95,19 +95,19 @@ void poll_key()
     int ms = 4;
     if (kcs[SDL_SCANCODE_UP]) {
         rect.y = fmax(INT32_MIN, rect.y - ms);
-        cube_pos.y += 0.1f;
+        /* cube_pos.y += 0.1f; */
     }
     if (kcs[SDL_SCANCODE_DOWN]) {
         rect.y = fmax(INT32_MIN, rect.y + ms);
-        cube_pos.y -= 0.1f;
+        /* cube_pos.y -= 0.1f; */
     }
     if (kcs[SDL_SCANCODE_LEFT]) {
         rect.x = fmax(INT32_MIN, rect.x - ms);
-        cube_pos.x -= 0.1f;
+        /* cube_pos.x -= 0.1f; */
     }
     if (kcs[SDL_SCANCODE_RIGHT]) {
         rect.x = fmax(INT32_MIN, rect.x + ms);
-        cube_pos.x += 0.1f;
+        /* cube_pos.x += 0.1f; */
     }
     if (kcs[SDL_SCANCODE_R]) {
         rect_angle = rect_angle + 0.10;
@@ -116,13 +116,13 @@ void poll_key()
     if (kcs[SDL_SCANCODE_W]) {
         circ.y = fmax(0, circ.y + ms);
         rect.z++;
-        cube_pos.z -= 0.1f;
+        /* cube_pos.z -= 0.1f; */
         /* printf("%f %f\n", circ.x, circ.y); */
     }
     if (kcs[SDL_SCANCODE_S]) {
         circ.y = fmax(0, circ.y - ms);
         rect.z--;
-        cube_pos.z += 0.1f;
+        /* cube_pos.z += 0.1f; */
         /* printf("%f %f\n", circ.x, circ.y); */
     }
     if (kcs[SDL_SCANCODE_A]) {
@@ -276,6 +276,7 @@ SDL_AppResult SDL_AppInit(void **state, int argc, char *argv[])
 
     SDL_GetWindowSizeInPixels(as->window, &scr_w, &scr_h);
     twod_update_scr_dims(scr_w, scr_h);
+    camera_update_scr_dims(scr_w, scr_h);
     twod_init();
     threed_init();
 
@@ -316,6 +317,7 @@ SDL_AppResult SDL_AppIterate(void *state)
 
     SDL_GetCurrentTime(&t_now);
     t_delta = t_now - t_last_update;
+    float t_delta_ms = t_delta / 1000000.0f;
     t_last_update = t_now;
     t_hist[t_hist_idx++ % 60] = t_delta;
     SDL_Time t_avg = 0;
@@ -323,8 +325,16 @@ SDL_AppResult SDL_AppIterate(void *state)
         t_avg += t_hist[i];
     t_avg /= 60;
 
+    int kb_n;
+    float m_x, m_y;
+    SDL_MouseButtonFlags mb_flags = SDL_GetMouseState(&m_x, &m_y);
+    const bool *kb_state = SDL_GetKeyboardState(&kb_n);
+
     poll_key();
     poll_mouse();
+    camera_free_poll_keys(cam, kb_state, t_delta_ms);
+    camera_free_poll_mouse(cam, mb_flags, m_x, m_y, t_delta_ms);
+    camera_update(cam);
 
     Color bg = COL_TOKYO;
     glClearColor(VEC4EXP(bg));
@@ -346,14 +356,14 @@ SDL_AppResult SDL_AppIterate(void *state)
     if (!paused) {
     }
 
-    char fps_str[50];
-    sprintf(fps_str, "ft: %.1fms (dt: %.2fs)", t_avg / 1000000.0f, dt_ms / 1000.0f);
+    char fps_str[300];
+    sprintf(fps_str, "ft: %5.1fms (dt: %5.2fs)", t_avg / 1000000.0f, dt_ms / 1000.0f);
     twod_draw_text(fps_str, strlen(fps_str), 10, 20, 0.3, COL_WHITE, 0);
-    sprintf(fps_str, "cam: (%.1f, %.1f, %.1f) looking at: (%.1f, %.1f, %.1f)",
+    sprintf(fps_str, "cam: (%5.1f, %5.1f, %5.1f) looking at: (%5.1f, %5.1f, %5.1f)",
             cam.pos.x, cam.pos.y, cam.pos.z,
             cam.at.x, cam.at.y, cam.at.z);
     twod_draw_text(fps_str, strlen(fps_str), 10, 45, 0.3, COL_WHITE, 0);
-    sprintf(fps_str, "cube: (%.1f, %.1f, %.1f)", cube_pos.x, cube_pos.y, cube_pos.z);
+    sprintf(fps_str, "cube: (%5.1f, %5.1f, %5.1f)", cube_pos.x, cube_pos.y, cube_pos.z);
     twod_draw_text(fps_str, strlen(fps_str), 10, 70, 0.3, COL_WHITE, 0);
 
     SDL_GL_SwapWindow(as->window);
@@ -372,6 +382,8 @@ SDL_AppResult SDL_AppEvent(void *state, SDL_Event *event)
     if (event->type == SDL_EVENT_WINDOW_RESIZED) {
         SDL_GetWindowSizeInPixels(as->window, &scr_w, &scr_h);
         twod_update_scr_dims(scr_w, scr_h);
+        camera_update_scr_dims(scr_w, scr_h);
+        camera_update(cam);
         glViewport(0, 0, scr_w, scr_h);
         /* printf("%d %d\n", w, h); */
     }

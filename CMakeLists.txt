@@ -11,10 +11,10 @@ set(EXECUTABLE_NAME ${PROJECT_NAME})
 
 add_executable(${EXECUTABLE_NAME})
 
-target_include_directories(${EXECUTABLE_NAME} PRIVATE include)
+target_include_directories(${EXECUTABLE_NAME} PRIVATE include /usr/include/freetype2)
 
 # set(SDLTTF_VENDORED ON) # tell SDL_ttf to build its own dependencies
-add_subdirectory(external/SDL_ttf)
+# add_subdirectory(external/SDL_ttf)
 
 file(GLOB_RECURSE srcs 
     "src/*.cpp"
@@ -26,7 +26,8 @@ target_sources(${EXECUTABLE_NAME}
 )
 
 target_link_libraries(${EXECUTABLE_NAME} PUBLIC 
-	SDL3_ttf::SDL3_ttf
+    freetype
+	# SDL3_ttf::SDL3_ttf
 )
 
 target_compile_definitions(${EXECUTABLE_NAME} PUBLIC SDL_MAIN_USE_CALLBACKS)
