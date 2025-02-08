@@ -59,6 +59,7 @@ static bool exit_first = true;
 
 extern char **environ;
 
+static bool mouse_hidden;
 static Button btn;
 
 Camera cam;
@@ -146,7 +147,16 @@ void poll_key()
     }
 }
 
-SDL_AppResult mouseclick_callback(SDL_MouseButtonEvent e)
+SDL_AppResult mouse_move_callback(SDL_MouseMotionEvent e)
+{
+    int p = 10;
+    if (mouse_hidden && (e.x < p || e.x >= scr_w - p || e.y < p || e.y >= scr_h - p))
+        SDL_WarpMouseInWindow(app_state.window, scr_w / 2, scr_h / 2);
+    camera_free_update_mouse(cam, e.xrel, e.yrel);
+    return SDL_APP_CONTINUE;
+}
+
+SDL_AppResult mouse_click_callback(SDL_MouseButtonEvent e)
 {
     if (e.button & SDL_BUTTON_LEFT && e.down)
         menu_button_check_if_clicked(btn, e.x, e.y);
@@ -164,6 +174,22 @@ SDL_AppResult key_callback(SDL_KeyboardEvent kb_event)
             printf("<ESC> pressed, exiting...\n");
             return SDL_APP_SUCCESS;
             break;
+        case SDL_SCANCODE_L:
+            if (mouse_hidden) {
+                SDL_ShowCursor();
+                /* bool succ = SDL_CaptureMouse(false); */
+                /* printf("%s\n", SDL_GetError()); */
+                /* SDL_SetWindowMouseGrab(app_state.window, false); */
+                mouse_hidden = !mouse_hidden;
+            }
+            else {
+                SDL_HideCursor();
+                /* bool succ = SDL_CaptureMouse(true); */
+                /* printf("%s\n", SDL_GetError()); */
+                /* SDL_SetWindowMouseGrab(app_state.window, true); */
+                mouse_hidden = !mouse_hidden;
+            }
+            break;
         case SDL_SCANCODE_P:
             glms_vec4_print(rect, stdout);
             glms_vec3_print(circ, stdout);
@@ -179,8 +205,6 @@ SDL_AppResult key_callback(SDL_KeyboardEvent kb_event)
             circ.z -= 5;
             break;
         case SDL_SCANCODE_SPACE:
-            cube_rot_axis.y = !cube_rot_axis.y;
-            cube_rot_axis.x = !cube_rot_axis.x;
             paused = !paused;
             printf("%s\n", (paused) ? "paused" : "unpaused");
             break;
@@ -326,14 +350,14 @@ SDL_AppResult SDL_AppIterate(void *state)
     t_avg /= 60;
 
     int kb_n;
-    float m_x, m_y;
-    SDL_MouseButtonFlags mb_flags = SDL_GetMouseState(&m_x, &m_y);
+    /* float m_x, m_y; */
+    /* SDL_MouseButtonFlags mb_flags = SDL_GetGlobalMouseState(&m_x, &m_y); */
     const bool *kb_state = SDL_GetKeyboardState(&kb_n);
 
     poll_key();
     poll_mouse();
     camera_free_poll_keys(cam, kb_state, t_delta_ms);
-    camera_free_poll_mouse(cam, mb_flags, m_x, m_y, t_delta_ms);
+    /* camera_free_poll_mouse(cam, mb_flags, m_x, m_y, t_delta_ms); */
     camera_update(cam);
 
     Color bg = COL_TOKYO;
@@ -392,8 +416,11 @@ SDL_AppResult SDL_AppEvent(void *state, SDL_Event *event)
         if ((res = key_callback(event->key)))
             return res;
 
+    if (event->type == SDL_EVENT_MOUSE_MOTION)
+        mouse_move_callback(event->motion);
+
     if (event->type == SDL_EVENT_MOUSE_BUTTON_DOWN)
-        mouseclick_callback(event->button);
+        mouse_click_callback(event->button);
 
     return SDL_APP_CONTINUE;
 }
