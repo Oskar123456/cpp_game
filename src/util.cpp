@@ -18,6 +18,9 @@
 #include "glad/glad.h"
 #include "logging.h"
 
+#include <cstdio>
+#include <cstdlib>
+
 u32 util_shader_load(const char* path_vs, const char* path_fs)
 {
     u32 sp;

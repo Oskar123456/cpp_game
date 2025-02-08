@@ -43,6 +43,9 @@ void screenshot();
 #define COL_WHITE {0xFF / 255.0f, 0xFF / 255.0f, 0xFF / 255.0f, 1.0f}
 #define COL_TOKYO {0x1A / 255.0f, 0x1B / 255.0f, 0x26 / 255.0f, 1.0f}
 #define COL_PINK {0xFF / 255.0f, 0x00 / 255.0f, 0x7F / 255.0f, 1.0f}
+#define COL_BLUE {0x00 / 255.0f, 0x00 / 255.0f, 0xFF / 255.0f, 1.0f}
+#define COL_BROWN {0x66 / 255.0f, 0x41 / 255.0f, 0x21 / 255.0f, 1.0f}
+#define COL_GREEN {0x00 / 255.0f, 0xFF / 255.0f, 0x00 / 255.0f, 1.0f}
 #define COL_BLACK {0x16 / 255.0f, 0x16 / 255.0f, 0x16 / 255.0f, 1.0f}
 
 #endif

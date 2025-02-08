@@ -24,8 +24,10 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb/stb_image_write.h>
 
+#include <string>
 #include <vector>
 #include <map>
+#include <time.h>
 
 using namespace std;
 

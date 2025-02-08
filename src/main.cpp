@@ -28,6 +28,8 @@
 #include <menu.h>
 #include <logging.h>
 
+#include <iostream>
+#include <cstdio>
 #include <map>
 #include <set>
 
@@ -59,11 +61,14 @@ static bool exit_first = true;
 
 extern char **environ;
 
-static bool mouse_hidden;
+static bool mouse_hidden = true;
 static Button btn;
 
 Camera cam;
+static World world;
 
+u32 main_mat_tex_id;
+u32 dirt_tex_id;
 /* TEMP */
 /* TEMP */
 /* TEMP */
@@ -303,6 +308,14 @@ SDL_AppResult SDL_AppInit(void **state, int argc, char *argv[])
     camera_update_scr_dims(scr_w, scr_h);
     twod_init();
     threed_init();
+    world_init();
+
+    world_gen_chunk(world, {0, 0, 0});
+    world_gen_chunk(world, {1, 0, 0});
+    world_gen_chunk(world, {2, 0, 0});
+    world_gen_chunk(world, {0, 1, 0});
+    world_gen_chunk(world, {1, 2, 0});
+    world_gen_chunk(world, {2, 2, 0});
 
     /* cells.emplace((vec2s){11, 11}); */
     /* cells.emplace((vec2s){11, 12}); */
@@ -312,8 +325,9 @@ SDL_AppResult SDL_AppInit(void **state, int argc, char *argv[])
 
     /* text */
     /* testing */
-    twod_create_tex("/home/oskar/Documents/cpp_game/resources/textures/minecraft_grass_side.jpg", "dirt");
-    threed_create_tex("/home/oskar/Documents/cpp_game/resources/textures/minecraft_grass_side.jpg", "dirt");
+    /* twod_create_tex("/home/oskar/Documents/cpp_game/resources/textures/minecraft_grass_side.jpg", "dirt"); */
+    /* dirt_tex_id = threed_create_tex("/home/oskar/Documents/cpp_game/resources/textures/minecraft_grass_side.jpg", "dirt"); */
+    main_mat_tex_id = threed_create_tex("/home/oskar/Documents/cpp_game/resources/textures/spritesheet_tiles_10x10.png", "main_mat", GL_RGBA);
     // twod_create_tex("/home/oskar/Documents/cpp_game/resources/textures/minecraft_snow_top.jpg", "snow");
 
     btn.text = "testing button";
@@ -331,6 +345,10 @@ SDL_AppResult SDL_AppInit(void **state, int argc, char *argv[])
     cam.pos = {0, 10, 10};
     cam.fov = 45;
     camera_update(cam);
+
+    SDL_WarpMouseGlobal(scr_w / 2, scr_h / 2);
+    SDL_HideCursor();
+    mouse_hidden = true;
 
     return SDL_APP_CONTINUE;
 }
@@ -375,20 +393,34 @@ SDL_AppResult SDL_AppIterate(void *state)
     /* menu_button_update(btn, t_start, t_now, t_delta); */
     /* menu_button_render(btn, t_start, t_now, t_delta); */
 
-    threed_render_cube(cam.view_proj, cube_pos, cube_rot, cube_rot_axis, COL_WHITE, "dirt");
+    /* threed_render_cube(cam.view_proj, cube_pos, cube_rot, cube_rot_axis, COL_WHITE, main_mat_tex_id); */
+
+    world_render(world, cam);
 
     if (!paused) {
     }
 
+    vec3i cam_chunk_pos = world_map_to_chunk(cam.pos);
+    vec3i cam_vox_pos = world_map_to_vox(cam.pos);
+
     char fps_str[300];
     sprintf(fps_str, "ft: %5.1fms (dt: %5.2fs)", t_avg / 1000000.0f, dt_ms / 1000.0f);
     twod_draw_text(fps_str, strlen(fps_str), 10, 20, 0.3, COL_WHITE, 0);
-    sprintf(fps_str, "cam: (%5.1f, %5.1f, %5.1f) looking at: (%5.1f, %5.1f, %5.1f)",
+    sprintf(fps_str, "cam: (%5.1f, %5.1f, %5.1f) at: (%5.1f, %5.1f, %5.1f) up: (%5.1f, %5.1f, %5.1f)",
             cam.pos.x, cam.pos.y, cam.pos.z,
-            cam.at.x, cam.at.y, cam.at.z);
+            cam.at.x, cam.at.y, cam.at.z,
+            cam.up.x, cam.up.y, cam.up.z);
     twod_draw_text(fps_str, strlen(fps_str), 10, 45, 0.3, COL_WHITE, 0);
-    sprintf(fps_str, "cube: (%5.1f, %5.1f, %5.1f)", cube_pos.x, cube_pos.y, cube_pos.z);
+    sprintf(fps_str, "pos: chunk(%d, %d, %d) vox(%d, %d, %d)",
+            cam_chunk_pos.x, cam_chunk_pos.y, cam_chunk_pos.z,
+            cam_vox_pos.x, cam_vox_pos.y, cam_vox_pos.z);
     twod_draw_text(fps_str, strlen(fps_str), 10, 70, 0.3, COL_WHITE, 0);
+    sprintf(fps_str, "world.settings: seed: %d, h:%d-%d(wl:%d), s/l/g/o: %5.2f/%5.2f/%5.2f/%5.2f",
+            world.settings.seed, world.settings.max_height, world.settings.min_height,
+            world.settings.water_level, world.settings.scale, world.settings.lacunarity, world.settings.gain, world.settings.octaves);
+    twod_draw_text(fps_str, strlen(fps_str), 10, 95, 0.3, COL_WHITE, 0);
+    sprintf(fps_str, "cube: (%5.1f, %5.1f, %5.1f)", cube_pos.x, cube_pos.y, cube_pos.z);
+    twod_draw_text(fps_str, strlen(fps_str), 10, 120, 0.3, COL_WHITE, 0);
 
     SDL_GL_SwapWindow(as->window);
 

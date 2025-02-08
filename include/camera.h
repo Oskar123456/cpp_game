@@ -21,9 +21,12 @@
 struct Camera {
     float fov;
     float move_speed = 0.03f;
-    float rot_speed = 0.001f;
-    float yaw, pitch, roll;
-    vec3s euler_angles;
+    float move_speed_sprint = 0.12f;
+    float rot_speed = 0.1f;
+    union {
+        struct { float yaw = 0, pitch = 0, roll = 0; };
+        vec3s euler_angles;
+    };
     vec3s pos, at, up, left, forward;
     mat4s view_proj;
 };

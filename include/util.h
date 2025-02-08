@@ -2,15 +2,6 @@
 #define UTIL_H
 
 #include <cstdint>
-#include <cstdio>
-#include <cmath>
-
-#include <string>
-#include <iostream>
-
-#if defined(__linux__)
-#include <time.h>
-#endif
 
 typedef uint64_t u64;
 typedef uint32_t u32;
