@@ -310,12 +310,14 @@ SDL_AppResult SDL_AppInit(void **state, int argc, char *argv[])
     threed_init();
     world_init();
 
-    world_gen_chunk(world, {0, 0, 0});
-    /* world_gen_chunk(world, {1, 0, 0}); */
-    /* world_gen_chunk(world, {2, 0, 0}); */
-    /* world_gen_chunk(world, {0, 1, 0}); */
-    /* world_gen_chunk(world, {1, 2, 0}); */
-    /* world_gen_chunk(world, {2, 2, 0}); */
+    int radius = 20;
+    for (int x = 0; x < radius; ++x) {
+        for (int y = 0; y < sqrt(radius); ++y) {
+            for (int z = 0; z < radius; ++z) {
+                world_gen_chunk(world, {x, y, z});
+            }
+        }
+    }
 
     /* cells.emplace((vec2s){11, 11}); */
     /* cells.emplace((vec2s){11, 12}); */

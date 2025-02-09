@@ -9,7 +9,7 @@
 #include <vector>
 #include <unordered_map>
 
-#define CHUNK_SIZE 4
+#define CHUNK_SIZE 16
 
 struct vec2i { int x, y; };
 struct vec3i { int x, y, z; };
@@ -47,6 +47,10 @@ struct Chunk {
     union {
         struct { int x, y, z; };
         vec3i pos;
+    };
+    union {
+        struct { int world_x, world_y, world_z; };
+        vec3i world_pos;
     };
     Voxel vox[CHUNK_SIZE][CHUNK_SIZE][CHUNK_SIZE];
     Chunk_Mesh mesh;

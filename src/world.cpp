@@ -47,7 +47,7 @@ static u32 shader_use_tex;
 
 void world_gen_chunk(World& world, vec3i pos)
 {
-    Chunk chunk = { .pos = pos };
+    Chunk chunk = { .pos = pos, .world_pos = {pos.x * CHUNK_SIZE, pos.y * CHUNK_SIZE, pos.z * CHUNK_SIZE} };
     for (int x = 0; x < CHUNK_SIZE; ++x) {
         for (int z = 0; z < CHUNK_SIZE; ++z) {
             float noise = stb_perlin_fbm_noise3((pos.x * CHUNK_SIZE + x) * world.settings.scale + world.settings.scale, 0,
@@ -80,12 +80,37 @@ void world_gen_chunk(World& world, vec3i pos)
 void world_render(World& world, Camera& cam)
 {
     Color c = COL_WHITE;
+
+    glUseProgram(shader);
+    glBindTexture(GL_TEXTURE_2D, main_tex_id);
+    glUniform4fv(shader_col, 1, (float*)&c);
+    glUniform1i(shader_use_tex, true);
+
     for (auto [pos, chunk] : world.chunks) {
-        vec3s pos_vox = {(float)pos.x * CHUNK_SIZE, (float)pos.y * CHUNK_SIZE, (float)pos.z * CHUNK_SIZE};
+        vec3s chunk_pos_in_vox = {(float)pos.x * CHUNK_SIZE, (float)pos.y * CHUNK_SIZE, (float)pos.z * CHUNK_SIZE};
+        /* for (int x = 0; x < CHUNK_SIZE; ++x) { */
+        /*     for (int y = 0; y < CHUNK_SIZE; ++y) { */
+        /*         for (int z = 0; z < CHUNK_SIZE; ++z) { */
+        /*             vec3s vox_pos = {chunk_pos_in_vox.x + x, chunk_pos_in_vox.y + y, chunk_pos_in_vox.z + z}; */
+        /*             Voxel_Data vox_type = vox_data[chunk.vox[x][y][z]]; */
+
+        /*             if (vox_type.type == VOX_AIR || vox_type.type == VOX_NONE) */
+        /*                 continue; */
+
+                    /* mat4s mvp = GLMS_MAT4_IDENTITY; */
+                    /* mvp = mat4_mul(mvp, cam.view_proj); */
+                    /* mvp = glms_translate(mvp, vox_pos); */
+                    /* glBindVertexArray(vox_type.vao); */
+                    /* glUniformMatrix4fv(shader_mvp, 1, GL_FALSE, (float*)&mvp); */
+                    /* glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0); */
+                    /* glBindVertexArray(0); */
+                /* } */
+            /* } */
+        /* } */
 
         mat4s mvp = GLMS_MAT4_IDENTITY;
         mvp = mat4_mul(mvp, cam.view_proj);
-        mvp = glms_translate(mvp, pos_vox);
+        mvp = glms_translate(mvp, chunk_pos_in_vox);
 
         /* vec3s p = mat4_mulv3(mvp, pos, 1); */
 
@@ -110,7 +135,6 @@ void world_render(World& world, Camera& cam)
         /*             if (type == VOX_AIR || type == VOX_NONE) */
         /*                 continue; */
         /*             vec3s rot = {0, 1, 0}; */
-        /*             vec3i chunk_pos = world_map_chunk_to_vox(chunk.pos); */
         /*             vec3s vox_pos = {(float)x + chunk_pos.x, (float)y + chunk_pos.y, (float)z + chunk_pos.z}; */
         /*             /1* printf("rendering voxel at %f %f %f\n", pos.x, pos.y, pos.z); *1/ */
         /*             /1* if (type == VOX_AIR) *1/ */
@@ -132,6 +156,7 @@ void world_gen_chunk_mesh(World& world, Chunk& chunk)
 {
     Chunk_Mesh mesh;
     int ii = 0;
+    int nvoxels = 0;
     for (int x = 0; x < CHUNK_SIZE; ++x) {
         for (int y = 0; y < CHUNK_SIZE; ++y) {
             for (int z = 0; z < CHUNK_SIZE; ++z) {
@@ -141,15 +166,20 @@ void world_gen_chunk_mesh(World& world, Chunk& chunk)
                 vec3i vox_pos = world_map_to_voxi({x, y, z}) + world_map_chunk_to_vox(chunk.pos);
                 for (int dir = 0; dir < DIR_NUM; ++dir) {
                     vec3i vox_pos_n = vox_pos + world_dir_i(dir);
-                    /* printf("(%d %d %d) neighbor of (%d %d %d)\n", vox_pos.x, vox_pos.y, vox_pos.z, vox_pos_n.x, vox_pos_n.y, vox_pos_n.z); */
                     Voxel vox_n = world_get_voxeli(world, vox_pos_n);
                     Voxel_Data vox_data_n = vox_data[vox_n];
+                    /* printf("(%d %d %d) neighbor of (%d %d %d: %s)\n", vox_pos.x, vox_pos.y, vox_pos.z, vox_pos_n.x, vox_pos_n.y, vox_pos_n.z, voxel_names[vox_n]); */
                     if (vox_data_n.is_opaque) {
                         ii++;
                         continue;
                     }
+                    ++nvoxels;
                     std::vector<float> v(threed_get_quad_vertices(dir), threed_get_quad_vertices(dir) + 32);
-                    std::vector<u32> t(threed_get_quad_indices(dir), threed_get_quad_indices(dir) + 6);
+                    std::vector<u32> t(threed_get_quad_indices(0), threed_get_quad_indices(0) + 6);
+
+                    for (int i = 0; i < 6; ++i) {
+                        t[i] += mesh.vertices.size() / 8;
+                    }
 
                     for (int i = 0; i < 4; ++i) {
                         v[i * 8 + 0] += x;
@@ -166,14 +196,14 @@ void world_gen_chunk_mesh(World& world, Chunk& chunk)
                     v[27] = (vox_data[type].tex_offs[dir].x + 1)  * tex_size - tex_padding;
                     v[28] =  vox_data[type].tex_offs[dir].y       * tex_size + tex_padding;
 
-                    for (int i = 0; i < 32; ++i) {
-                        if (!(i % 8) && i > 0)
-                            printf("\n");
-                        else if (i > 0)
-                            printf(",");
-                        printf("%.1f", v[i]);
-                    }
-                    printf("\n");
+/*                     for (int i = 0; i < 32; ++i) { */
+/*                         if (!(i % 8) && i > 0) */
+/*                             printf("\n"); */
+/*                         else if (i > 0) */
+/*                             printf(","); */
+/*                         printf("%.1f", v[i]); */
+/*                     } */
+/*                     printf("\n"); */
 
                     mesh.vertices.insert(mesh.vertices.end(), v.begin(), v.end());
                     mesh.triangles.insert(mesh.triangles.end(), t.begin(), t.end());
@@ -199,7 +229,7 @@ void world_gen_chunk_mesh(World& world, Chunk& chunk)
             }
         }
     }
-    printf("skipped %d\n", ii);
+    printf("skipped %d (added %d)\n", ii, nvoxels);
     chunk.mesh = mesh;
     world.chunk_meshes[chunk.pos] = mesh;
 }
@@ -213,7 +243,8 @@ void world_regen_chunk(World& world, Chunk& chunk)
 
     Chunk_Mesh mesh = chunk.mesh;
 
-    printf("%d %d\n", mesh.vertices.size(), mesh.triangles.size());
+    printf("uploading %.2fkb of vertices (%ld triangles) for chunk at %d %d %d\n",
+            (mesh.vertices.size() * sizeof(float) + mesh.triangles.size() * sizeof(float)) / 1000.0f, mesh.triangles.size() / 3, chunk.world_pos.x, chunk.world_pos.y, chunk.world_pos.z);
 
     u32 vao, vbo, ebo;
     glGenVertexArrays(1, &vao);
@@ -315,6 +346,12 @@ Voxel world_get_voxeli(World& world, vec3i pos)
 {
     vec3i chunk_pos = world_map_to_chunki(pos);
     vec3i vox_pos = world_map_to_voxi(pos);
+    /* if (pos.x < 0 || pos.y < 0 || pos.z < 0) { */
+    /*     printf("should be neg chunk\n"); */
+    /*     if (chunk_pos.x < 0 || chunk_pos.y < 0 || chunk_pos.z < 0) { */
+    /*         printf("looking for voxel at (%d %d %d) maps to (%d %d %d)\n", pos.x, pos.y, pos.z, chunk_pos.x, chunk_pos.y, chunk_pos.z); */
+    /*     } */
+    /* } */
     /* printf("looking for voxel at (%d %d %d) maps to (%d %d %d)\n", pos.x, pos.y, pos.z, chunk_pos.x, chunk_pos.y, chunk_pos.z); */
     if (!world.chunks.count(chunk_pos))
         return VOX_NONE;
@@ -329,7 +366,7 @@ vec3i world_map_chunk_to_vox(vec3i pos)
 
 vec3i world_map_to_chunki(vec3i pos)
 {
-    return {(int)floor(pos.x / CHUNK_SIZE), (int)floor(pos.y / CHUNK_SIZE), (int)floor(pos.z / CHUNK_SIZE)};
+    return {(int)floor((float)pos.x / CHUNK_SIZE), (int)floor((float)pos.y / CHUNK_SIZE), (int)floor((float)pos.z / CHUNK_SIZE)};
 }
 
 vec3i world_map_to_chunkf(vec3s pos)
@@ -358,8 +395,8 @@ vec3s world_dir(u8 dir)
         {0, -1, 0},
         {-1, 0, 0},
         {1,  0, 0},
-        {0,  0, -1},
-        {0,  0, 1}
+        {0,  0, 1},
+        {0,  0, -1}
     };
     return dirs[dir];
 }
@@ -371,8 +408,8 @@ vec3i world_dir_i(u8 dir)
         {0, -1, 0},
         {-1, 0, 0},
         {1,  0, 0},
-        {0,  0, -1},
-        {0,  0, 1}
+        {0,  0, 1},
+        {0,  0, -1}
     };
     return dirs[dir];
 }
