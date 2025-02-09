@@ -291,11 +291,11 @@ SDL_AppResult SDL_AppInit(void **state, int argc, char *argv[])
         return SDL_APP_FAILURE;
     }
 
-    /* glEnable(GL_MULTISAMPLE); */
-    /* glHint(GL_LINE_SMOOTH_HINT, GL_NICEST ); */
-    /* glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST ); */
-    /* glEnable(GL_LINE_SMOOTH); */
-    /* glEnable(GL_POLYGON_SMOOTH); */
+    glEnable(GL_MULTISAMPLE);
+    glHint(GL_LINE_SMOOTH_HINT, GL_NICEST );
+    glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST );
+    glEnable(GL_LINE_SMOOTH);
+    glEnable(GL_POLYGON_SMOOTH);
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -311,11 +311,11 @@ SDL_AppResult SDL_AppInit(void **state, int argc, char *argv[])
     world_init();
 
     world_gen_chunk(world, {0, 0, 0});
-    world_gen_chunk(world, {1, 0, 0});
-    world_gen_chunk(world, {2, 0, 0});
-    world_gen_chunk(world, {0, 1, 0});
-    world_gen_chunk(world, {1, 2, 0});
-    world_gen_chunk(world, {2, 2, 0});
+    /* world_gen_chunk(world, {1, 0, 0}); */
+    /* world_gen_chunk(world, {2, 0, 0}); */
+    /* world_gen_chunk(world, {0, 1, 0}); */
+    /* world_gen_chunk(world, {1, 2, 0}); */
+    /* world_gen_chunk(world, {2, 2, 0}); */
 
     /* cells.emplace((vec2s){11, 11}); */
     /* cells.emplace((vec2s){11, 12}); */
@@ -400,8 +400,8 @@ SDL_AppResult SDL_AppIterate(void *state)
     if (!paused) {
     }
 
-    vec3i cam_chunk_pos = world_map_to_chunk(cam.pos);
-    vec3i cam_vox_pos = world_map_to_vox(cam.pos);
+    vec3i cam_chunk_pos = world_map_to_chunkf(cam.pos);
+    vec3i cam_vox_pos = world_map_to_voxf(cam.pos);
 
     char fps_str[300];
     sprintf(fps_str, "ft: %5.1fms (dt: %5.2fs)", t_avg / 1000000.0f, dt_ms / 1000.0f);

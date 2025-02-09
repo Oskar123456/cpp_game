@@ -6,9 +6,10 @@
 #include <camera.h>
 
 #include <tuple>
+#include <vector>
 #include <unordered_map>
 
-#define CHUNK_SIZE 16
+#define CHUNK_SIZE 4
 
 struct vec2i { int x, y; };
 struct vec3i { int x, y, z; };
@@ -37,12 +38,19 @@ struct Voxel_Data {
     u32 vao;
 };
 
+struct Chunk_Mesh {
+    std::vector<float> vertices, vertices_water, vertices_collision;
+    std::vector<u32> triangles, triangles_water, triangles_collision;
+};
+
 struct Chunk {
     union {
         struct { int x, y, z; };
         vec3i pos;
     };
     Voxel vox[CHUNK_SIZE][CHUNK_SIZE][CHUNK_SIZE];
+    Chunk_Mesh mesh;
+    u32 vao;
 };
 
 struct World_Settings {
@@ -54,6 +62,7 @@ struct World_Settings {
 struct World {
     World_Settings settings;
     std::unordered_map<vec3i, Chunk> chunks;
+    std::unordered_map<vec3i, Chunk_Mesh> chunk_meshes;
 };
 
 
@@ -70,10 +79,21 @@ void world_render_cube();
 void world_render(World& world, Camera& cam);
 void world_init();
 void world_gen_chunk(World& world, vec3i pos);
-vec3i world_map_chunk_to_vox(vec3i pos);
-vec3i world_map_to_chunk(vec3s pos);
-vec3i world_map_to_vox(vec3s pos);
 void world_load_voxel_data(Voxel vox);
+void world_gen_chunk_mesh(World& world, Chunk& chunk);
+void world_regen_chunk(World& world, Chunk& chunk);
+
+vec3i world_map_chunk_to_vox(vec3i pos);
+vec3i world_map_to_chunki(vec3i pos);
+vec3i world_map_to_chunkf(vec3s pos);
+vec3i world_map_to_voxi(vec3i pos);
+vec3i world_map_to_voxf(vec3s pos);
+Voxel world_get_voxeli(World& world, vec3i pos);
+
+vec3s world_dir(u8 dir);
+vec3i world_dir_i(u8 dir);
+
+
 
 #endif
 

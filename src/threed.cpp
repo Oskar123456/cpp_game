@@ -77,6 +77,21 @@ static u32 eab_cube[] = {
     20, 21, 22, 20, 22, 23
 };
 
+float* threed_get_quad_vertices(int dir)
+{
+    return &vs_cube[dir * 32];
+}
+
+u32* threed_get_quad_indices(int dir)
+{
+    return &eab_cube[dir * 6];
+}
+
+u32 threed_get_default_shader()
+{
+    return shader_cube;
+}
+
 void threed_render_cube(mat4s& view_proj, vec3s& pos, float angle, vec3s rot_axis, Color col, u32 vao, u32 tex_id)
 {
     mat4s mvp = GLMS_MAT4_IDENTITY;
@@ -98,8 +113,6 @@ void threed_render_cube(mat4s& view_proj, vec3s& pos, float angle, vec3s rot_axi
     glUniform1i(shader_cube_use_tex, tex_id > 0);
     glDrawElements(GL_TRIANGLES, sizeof(eab_cube), GL_UNSIGNED_INT, 0);
     glBindVertexArray(0);
-
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
 u32 threed_create_tex(const char* img_path, const char* alias, int format)
