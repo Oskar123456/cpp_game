@@ -28,6 +28,7 @@ INCDEP      := -I$(INCDIR) -I/usr/include/freetype2 -I/usr/include/libpng16
 #---------------------------------------------------------------------------------
 SOURCES     := $(shell find $(SRCDIR) -type f -name *.$(SRCEXT))
 SOURCES     := $(filter-out $(wildcard src/solutions/*), $(SOURCES))
+SOURCES     := $(filter-out $(wildcard src/maze.cpp), $(SOURCES))
 OBJECTS     := $(patsubst $(SRCDIR)/%,$(BUILDDIR)/%,$(SOURCES:.$(SRCEXT)=.$(OBJEXT)))
 
 include $(ENV_FILES)

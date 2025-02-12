@@ -103,7 +103,7 @@ void threed_render_cube(mat4s& view_proj, vec3s& pos, float angle, vec3s rot_axi
 
     /* glms_vec3_print(p, stdout); */
 
-    /* glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); */
+    // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     glUseProgram(shader_cube);
     glBindTexture(GL_TEXTURE_2D, tex_id);
@@ -113,6 +113,8 @@ void threed_render_cube(mat4s& view_proj, vec3s& pos, float angle, vec3s rot_axi
     glUniform1i(shader_cube_use_tex, tex_id > 0);
     glDrawElements(GL_TRIANGLES, sizeof(eab_cube), GL_UNSIGNED_INT, 0);
     glBindVertexArray(0);
+
+    // glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
 u32 threed_create_tex(const char* img_path, const char* alias, int format)

@@ -59,21 +59,20 @@ void world_gen_chunk(World& world, vec3i pos)
             int h = (noise * (world.settings.max_height - world.settings.min_height)) + world.settings.min_height;
             for (int y = 0; y < CHUNK_SIZE; ++y) {
                 int y_vox = y + chunk.y * CHUNK_SIZE;
-                if (y_vox <= world.settings.water_level)
-                    chunk.vox[x][y][z] = VOX_WATER;
-                else if (y_vox > h)
-                    chunk.vox[x][y][z] = VOX_AIR;
+                if (y_vox < h)
+                    chunk.vox[x][y][z] = VOX_DIRT;
                 else if (y_vox == h)
                     chunk.vox[x][y][z] = VOX_GRASS_DIRT;
-                else if (y_vox < h)
-                    chunk.vox[x][y][z] = VOX_DIRT;
+                else if (y_vox > h) {
+                    if (y_vox <= world.settings.water_level)
+                        chunk.vox[x][y][z] = VOX_WATER;
+                    else
+                        chunk.vox[x][y][z] = VOX_AIR;
+                }
                 /* printf("create voxel (h:%d) (%s) at (%d %d %d)\n", h, voxel_names[chunk.vox[x][y][z]], chunk.pos.x * CHUNK_SIZE + x, chunk.pos.y * CHUNK_SIZE + y, chunk.pos.z * CHUNK_SIZE + z); */
             }
         }
     }
-    world.chunks[chunk.pos] = chunk;
-    world_gen_chunk_mesh(world, chunk);
-    world_regen_chunk(world, chunk);
     world.chunks[chunk.pos] = chunk;
 }
 
@@ -88,25 +87,6 @@ void world_render(World& world, Camera& cam)
 
     for (auto [pos, chunk] : world.chunks) {
         vec3s chunk_pos_in_vox = {(float)pos.x * CHUNK_SIZE, (float)pos.y * CHUNK_SIZE, (float)pos.z * CHUNK_SIZE};
-        /* for (int x = 0; x < CHUNK_SIZE; ++x) { */
-        /*     for (int y = 0; y < CHUNK_SIZE; ++y) { */
-        /*         for (int z = 0; z < CHUNK_SIZE; ++z) { */
-        /*             vec3s vox_pos = {chunk_pos_in_vox.x + x, chunk_pos_in_vox.y + y, chunk_pos_in_vox.z + z}; */
-        /*             Voxel_Data vox_type = vox_data[chunk.vox[x][y][z]]; */
-
-        /*             if (vox_type.type == VOX_AIR || vox_type.type == VOX_NONE) */
-        /*                 continue; */
-
-                    /* mat4s mvp = GLMS_MAT4_IDENTITY; */
-                    /* mvp = mat4_mul(mvp, cam.view_proj); */
-                    /* mvp = glms_translate(mvp, vox_pos); */
-                    /* glBindVertexArray(vox_type.vao); */
-                    /* glUniformMatrix4fv(shader_mvp, 1, GL_FALSE, (float*)&mvp); */
-                    /* glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0); */
-                    /* glBindVertexArray(0); */
-                /* } */
-            /* } */
-        /* } */
 
         mat4s mvp = GLMS_MAT4_IDENTITY;
         mvp = mat4_mul(mvp, cam.view_proj);
@@ -128,35 +108,12 @@ void world_render(World& world, Camera& cam)
         glBindVertexArray(0);
 
         /* glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); */
-        /* for (int x = 0; x < CHUNK_SIZE; ++x) { */
-        /*     for (int y = 0; y < CHUNK_SIZE; ++y) { */
-        /*         for (int z = 0; z < CHUNK_SIZE; ++z) { */
-        /*             Voxel type = chunk.vox[x][y][z]; */
-        /*             if (type == VOX_AIR || type == VOX_NONE) */
-        /*                 continue; */
-        /*             vec3s rot = {0, 1, 0}; */
-        /*             vec3s vox_pos = {(float)x + chunk_pos.x, (float)y + chunk_pos.y, (float)z + chunk_pos.z}; */
-        /*             /1* printf("rendering voxel at %f %f %f\n", pos.x, pos.y, pos.z); *1/ */
-        /*             /1* if (type == VOX_AIR) *1/ */
-        /*             /1*     threed_render_cube(cam.view_proj, pos, 0, rot, COL_WHITE, 0, 0); *1/ */
-        /*             /1* if (type == VOX_GRASS_DIRT) *1/ */
-        /*             /1*     threed_render_cube(cam.view_proj, pos, 0, rot, COL_GREEN, 0, 0); *1/ */
-        /*             /1* if (type == VOX_DIRT) *1/ */
-        /*             /1*     threed_render_cube(cam.view_proj, pos, 0, rot, COL_BROWN, 0, 0); *1/ */
-        /*             /1* if (type == VOX_WATER) *1/ */
-        /*             /1*     threed_render_cube(cam.view_proj, pos, 0, rot, COL_BLUE, 0, 0); *1/ */
-        /*             threed_render_cube(cam.view_proj, vox_pos, 0, rot, COL_WHITE, vox_data[type].vao, main_tex_id); */
-        /*         } */
-        /*     } */
-        /* } */
     }
 }
 
 void world_gen_chunk_mesh(World& world, Chunk& chunk)
 {
     Chunk_Mesh mesh;
-    int ii = 0;
-    int nvoxels = 0;
     for (int x = 0; x < CHUNK_SIZE; ++x) {
         for (int y = 0; y < CHUNK_SIZE; ++y) {
             for (int z = 0; z < CHUNK_SIZE; ++z) {
@@ -170,10 +127,8 @@ void world_gen_chunk_mesh(World& world, Chunk& chunk)
                     Voxel_Data vox_data_n = vox_data[vox_n];
                     /* printf("(%d %d %d) neighbor of (%d %d %d: %s)\n", vox_pos.x, vox_pos.y, vox_pos.z, vox_pos_n.x, vox_pos_n.y, vox_pos_n.z, voxel_names[vox_n]); */
                     if (vox_data_n.is_opaque) {
-                        ii++;
                         continue;
                     }
-                    ++nvoxels;
                     std::vector<float> v(threed_get_quad_vertices(dir), threed_get_quad_vertices(dir) + 32);
                     std::vector<u32> t(threed_get_quad_indices(0), threed_get_quad_indices(0) + 6);
 
@@ -229,7 +184,6 @@ void world_gen_chunk_mesh(World& world, Chunk& chunk)
             }
         }
     }
-    printf("skipped %d (added %d)\n", ii, nvoxels);
     chunk.mesh = mesh;
     world.chunk_meshes[chunk.pos] = mesh;
 }
@@ -243,8 +197,8 @@ void world_regen_chunk(World& world, Chunk& chunk)
 
     Chunk_Mesh mesh = chunk.mesh;
 
-    printf("uploading %.2fkb of vertices (%ld triangles) for chunk at %d %d %d\n",
-            (mesh.vertices.size() * sizeof(float) + mesh.triangles.size() * sizeof(float)) / 1000.0f, mesh.triangles.size() / 3, chunk.world_pos.x, chunk.world_pos.y, chunk.world_pos.z);
+    /* printf("uploading %.2fkb of vertices (%ld triangles) for chunk at %d %d %d\n", */
+    /*         (mesh.vertices.size() * sizeof(float) + mesh.triangles.size() * sizeof(float)) / 1000.0f, mesh.triangles.size() / 3, chunk.world_pos.x, chunk.world_pos.y, chunk.world_pos.z); */
 
     u32 vao, vbo, ebo;
     glGenVertexArrays(1, &vao);

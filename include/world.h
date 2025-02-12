@@ -11,7 +11,7 @@
 
 #define CHUNK_SIZE 16
 
-struct vec2i { int x, y; };
+struct vec2i { union { struct { int x, y; }; struct { int i, j; }; }; };
 struct vec3i { int x, y, z; };
 
 template <>
@@ -59,7 +59,7 @@ struct Chunk {
 
 struct World_Settings {
     int seed, seed_x, seed_y, seed_z;
-    int max_height = 20, min_height = 0, water_level = 0;
+    int max_height = 20, min_height = -2, water_level = 0;
     float scale = 0.01f, lacunarity = 2, gain = 0.5f, octaves = 4;
 };
 
