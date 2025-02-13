@@ -37,9 +37,9 @@ void camera_update(Camera& cam)
 
     /* cam.up = vec3_normalize(vec3_cross(cam.left, cam.forward)); */
 
-    mat4s v = glms_lookat(cam.pos, cam.at, cam.up);
-    mat4s p = glms_perspective(cam.fov * ((2 * M_PI) / 360.0f), (float)scr_w/scr_h, 0.1f, 500.0f);
-    cam.view_proj = mat4_mul(p, v);
+    cam.view = glms_lookat(cam.pos, cam.at, cam.up);
+    cam.proj = glms_perspective(cam.fov * ((2 * M_PI) / 360.0f), (float)scr_w/scr_h, 0.1f, 500.0f);
+    cam.view_proj = mat4_mul(cam.proj, cam.view);
 }
 
 void camera_free_poll_keys(Camera& cam, const bool *kb_state, float dt)
@@ -83,6 +83,7 @@ void camera_free_update_mouse(Camera& cam, float dx, float dy)
     if (dx != 0 || dy != 0) {
         cam.yaw += cam.rot_speed * dx;
         cam.pitch -= cam.rot_speed * dy;
+        cam.pitch = max(min(cam.pitch, 89.0f), -89.0f);
 
         camera_update(cam);
     }

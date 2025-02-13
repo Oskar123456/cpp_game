@@ -17,6 +17,9 @@
 #define CAMERA_H
 
 #include <SDL3/SDL.h>
+#define CGLM_USE_ANONYMOUS_STRUCT 1
+#define CGLM_OMIT_NS_FROM_STRUCT_API 1
+#include <cglm/struct.h>
 
 struct Camera {
     float fov;
@@ -29,6 +32,7 @@ struct Camera {
     };
     vec3s pos, at, up, left, forward;
     mat4s view_proj;
+    mat4s view, proj;
 };
 
 void camera_update(Camera& cam);

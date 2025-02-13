@@ -4,6 +4,7 @@
 #include <threed.h>
 #include <logging.h>
 #include <camera.h>
+#include <render.h>
 
 #include <tuple>
 #include <vector>
@@ -55,6 +56,7 @@ struct Chunk {
     Voxel vox[CHUNK_SIZE][CHUNK_SIZE][CHUNK_SIZE];
     Chunk_Mesh mesh;
     u32 vao;
+    Model model;
 };
 
 struct World_Settings {

@@ -86,28 +86,26 @@ void world_render(World& world, Camera& cam)
     glUniform1i(shader_use_tex, true);
 
     for (auto [pos, chunk] : world.chunks) {
+        float rotation = 0;
+        vec3s rot_axis = {0, 1, 0};
+        vec3s scale = {1, 1, 1};
+        vec4s tint = {1, 1, 1, 1};
         vec3s chunk_pos_in_vox = {(float)pos.x * CHUNK_SIZE, (float)pos.y * CHUNK_SIZE, (float)pos.z * CHUNK_SIZE};
 
-        mat4s mvp = GLMS_MAT4_IDENTITY;
-        mvp = mat4_mul(mvp, cam.view_proj);
-        mvp = glms_translate(mvp, chunk_pos_in_vox);
+        render(cam, chunk.model, chunk_pos_in_vox, scale, rotation, rot_axis, tint, false);
 
-        /* vec3s p = mat4_mulv3(mvp, pos, 1); */
+        // mat4s mvp = GLMS_MAT4_IDENTITY;
+        // mvp = mat4_mul(mvp, cam.view_proj);
+        // mvp = glms_translate(mvp, chunk_pos_in_vox);
 
-        /* glms_vec3_print(p, stdout); */
-
-        /* glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); */
-
-        glUseProgram(shader);
-        glBindTexture(GL_TEXTURE_2D, main_tex_id);
-        glBindVertexArray(chunk.vao);
-        glUniformMatrix4fv(shader_mvp, 1, GL_FALSE, (float*)&mvp);
-        glUniform4fv(shader_col, 1, (float*)&c);
-        glUniform1i(shader_use_tex, true);
-        glDrawElements(GL_TRIANGLES, chunk.mesh.triangles.size(), GL_UNSIGNED_INT, 0);
-        glBindVertexArray(0);
-
-        /* glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); */
+        // glUseProgram(shader);
+        // glBindTexture(GL_TEXTURE_2D, main_tex_id);
+        // glBindVertexArray(chunk.vao);
+        // glUniformMatrix4fv(shader_mvp, 1, GL_FALSE, (float*)&mvp);
+        // glUniform4fv(shader_col, 1, (float*)&c);
+        // glUniform1i(shader_use_tex, true);
+        // glDrawElements(GL_TRIANGLES, chunk.mesh.triangles.size(), GL_UNSIGNED_INT, 0);
+        // glBindVertexArray(0);
     }
 }
 
@@ -125,7 +123,6 @@ void world_gen_chunk_mesh(World& world, Chunk& chunk)
                     vec3i vox_pos_n = vox_pos + world_dir_i(dir);
                     Voxel vox_n = world_get_voxeli(world, vox_pos_n);
                     Voxel_Data vox_data_n = vox_data[vox_n];
-                    /* printf("(%d %d %d) neighbor of (%d %d %d: %s)\n", vox_pos.x, vox_pos.y, vox_pos.z, vox_pos_n.x, vox_pos_n.y, vox_pos_n.z, voxel_names[vox_n]); */
                     if (vox_data_n.is_opaque) {
                         continue;
                     }
@@ -151,39 +148,14 @@ void world_gen_chunk_mesh(World& world, Chunk& chunk)
                     v[27] = (vox_data[type].tex_offs[dir].x + 1)  * tex_size - tex_padding;
                     v[28] =  vox_data[type].tex_offs[dir].y       * tex_size + tex_padding;
 
-/*                     for (int i = 0; i < 32; ++i) { */
-/*                         if (!(i % 8) && i > 0) */
-/*                             printf("\n"); */
-/*                         else if (i > 0) */
-/*                             printf(","); */
-/*                         printf("%.1f", v[i]); */
-/*                     } */
-/*                     printf("\n"); */
-
                     mesh.vertices.insert(mesh.vertices.end(), v.begin(), v.end());
                     mesh.triangles.insert(mesh.triangles.end(), t.begin(), t.end());
 
-                    /* for (int i = 0; i < mesh.vertices.size(); ++i) { */
-                    /*     printf("%.1f", mesh.vertices[i]); */
-                    /*     if (!(i % 8)) */
-                    /*         printf("\n"); */
-                    /*     else */
-                    /*         printf(","); */
-                    /* } */
-
-                    /* printf("\n"); */
-
-                    /* for (int i = 0; i < mesh.triangles.size(); ++i) { */
-                    /*     printf("%u", mesh.triangles[i]); */
-                    /*     if (!(i % 8)) */
-                    /*         printf("\n"); */
-                    /*     else */
-                    /*         printf(","); */
-                    /* } */
                 }
             }
         }
     }
+
     chunk.mesh = mesh;
     world.chunk_meshes[chunk.pos] = mesh;
 }
@@ -223,6 +195,14 @@ void world_regen_chunk(World& world, Chunk& chunk)
     glBindVertexArray(0);
 
     chunk.vao = vao;
+    chunk.model.mesh = vao;
+    chunk.model.vertices = mesh.vertices.size();
+    chunk.model.triangles = mesh.triangles.size();
+    chunk.model.texture = main_tex_id;
+    chunk.model.material.ambient = {1, 1, 1};
+    chunk.model.material.diffuse = {1, 1, 1};
+    chunk.model.material.specular = {1, 1, 1};
+    chunk.model.material.smoothness = 0.1f;
 }
 
 void world_init()
@@ -273,6 +253,14 @@ void world_init()
     for (int i = 0; i < VOX_NUM; ++i) {
         world_load_voxel_data((Voxel)i);
     }
+
+    Light sun = {
+        .ambient = {1, 1, 1}, .diffuse = {1, 1, 1}, .specular = {1, 1, 1},
+        .position = {0, 1000, 1000}, .direction {0, -1, -1}, .attenuation = 0
+    };
+
+    render_init();
+    render_add_lights(&sun, 1);
 }
 
 void world_load_voxel_data(Voxel vox)

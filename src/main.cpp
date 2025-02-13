@@ -72,131 +72,6 @@ static World world;
 u32 main_mat_tex_id;
 u32 dirt_tex_id;
 
-typedef struct Cell Cell;
-
-struct Cell {
-    // Cell* neighbors[3][3] = { NULL };
-    bool path[3][3] = { false };
-    bool vis              = false;
-};
-
-// MAZE
-// MAZE
-// MAZE
-
-#include <stack>
-
-vec2i dirs[] = { {-1, 0}, {0, 1}, {1, 0}, {0, -1} };
-
-#define MAZE_SIZE 23
-#define MAZE_SIZE_REAL MAZE_SIZE * 2 - 1
-
-static bool maze[MAZE_SIZE_REAL][MAZE_SIZE_REAL];
-static bool vis[MAZE_SIZE][MAZE_SIZE];
-static vec2i start, maze_end;
-
-bool maze_is_in_bounds(vec2i& v)
-{
-    return v.x >= 0 && v.x < MAZE_SIZE && v.y >= 0 && v.y < MAZE_SIZE;
-}
-
-bool maze_is_in_bounds(int x, int y)
-{
-    return x >= 0 && x < MAZE_SIZE && y >= 0 && y < MAZE_SIZE;
-}
-
-void maze_draw()
-{
-    for (int x = 0; x < MAZE_SIZE_REAL + 2; ++x) {
-        for (int y = 0; y < MAZE_SIZE_REAL + 2; ++y) {
-            float r_minus = ((x * y + x * 10) % 255) / 255.0f;
-            vec3s p = {(float)x - 1, MAZE_SIZE - 1 - (float)y - 1, 0};
-            // if ((x - 1) == maze_end.i && (y - 1) == maze_end.j) {
-            //     threed_render_cube(cam.view_proj, p, 0, {0, 0, 1}, COL_BLUE, 0, 0);
-            //     continue;
-            // }
-            if (x == 0 || y == 0 || x == MAZE_SIZE_REAL + 1 || y == MAZE_SIZE_REAL + 1) {
-                threed_render_cube(cam.view_proj, p, 0, {0, 0, 1}, {r_minus, 0.5f, 0.5f, 1}, 0, 0);
-                continue;
-            }
-            if ((y - 1) / 2 == start.i && (x - 1) / 2== start.j) {
-                if (((x - 1) % 2 == 0 && (y - 1) % 2 == 0)) {
-                    threed_render_cube(cam.view_proj, p, 0, {0, 0, 1}, COL_PINK, 0, 0);
-                    continue;
-                }
-            }
-            if ((x - 1) % 2 == 0 && (y - 1) % 2 == 0)
-                continue;
-            if (!maze_is_in_bounds((x - 1) / 2, (y - 1) / 2) || maze[(y - 1)][(x - 1)])
-                continue;
-            threed_render_cube(cam.view_proj, p, 0, {0, 0, 1}, {r_minus, 0.5f, 0.5f, 1}, 0, 0);
-        }
-    }
-}
-
-int maze_n_vis()
-{
-    int n = 0;
-    for (int x = 0; x < MAZE_SIZE; ++x) {
-        for (int y = 0; y < MAZE_SIZE; ++y) {
-            if (vis[x][y])
-                ++n;
-        }
-    }
-    return n;
-}
-
-void maze_gen()
-{
-    srand(time(NULL));
-    memset(maze, 0, sizeof(maze));
-    memset(vis, 0, sizeof(vis));
-
-    start = {rand() % MAZE_SIZE, rand() % MAZE_SIZE};
-    maze_end = start;
-    int end_i = rand() % (MAZE_SIZE * MAZE_SIZE), count_to_end = 0;
-
-    stack<vec2i> s;
-    s.push(start);
-
-    maze[start.i][start.j] = true;
-
-    printf("start (%d,%d)\n", start.i, start.j);
-
-    while (maze_n_vis() < MAZE_SIZE * MAZE_SIZE) {
-        vec2i v = s.top();
-        vis[v.i][v.j] = true;
-
-        int r = rand() % 4;
-        int i;
-        for (i = 0; i < 4; ++i) {
-            vec2i dir = dirs[(r + i) % 4];
-            vec2i pos = v + dir;
-            if (!maze_is_in_bounds(pos))
-                continue;
-            if (vis[pos.i][pos.j])
-                continue;
-            maze[v.i * 2 + dir.i][v.j * 2 + dir.j] = true;
-            vis[pos.i][pos.j] = true;
-            s.push(pos);
-            // printf("new path: (%d,%d) --> (%d,%d)\n", v.i, v.j, pos.i, pos.j);
-            break;
-        }
-        if (i == 4)
-            s.pop();
-        if (count_to_end == end_i) {
-            maze_end = v;
-        }
-
-        count_to_end++;
-        /* printf("visited so far: %d\n", maze_n_vis()); */
-    }
-}
-
-// MAZE
-// MAZE
-// MAZE
-
 /* TEMP */
 /* TEMP */
 /* TEMP */
@@ -338,7 +213,6 @@ SDL_AppResult key_callback(SDL_KeyboardEvent kb_event)
             circ.z -= 5;
             break;
         case SDL_SCANCODE_SPACE:
-            maze_gen();
             paused = !paused;
             printf("%s\n", (paused) ? "paused" : "unpaused");
             break;
@@ -439,30 +313,24 @@ SDL_AppResult SDL_AppInit(void **state, int argc, char *argv[])
     threed_init();
     world_init();
 
-    // int radius = 4;
-    // for (int x = 0; x < radius; ++x) {
-    //     for (int y = -sqrt(sqrt(radius)); y <= sqrt(sqrt(radius)); ++y) {
-    //         for (int z = 0; z < radius; ++z) {
-    //             world_gen_chunk(world, {x, y, z});
-    //         }
-    //     }
-    // }
+    int radius = 4;
+    for (int x = 0; x < radius; ++x) {
+        for (int y = -sqrt(sqrt(radius)); y <= sqrt(sqrt(radius)); ++y) {
+            for (int z = 0; z < radius; ++z) {
+                world_gen_chunk(world, {x, y, z});
+            }
+        }
+    }
 
-    // for (auto [pos, chunk] : world.chunks) {
-    //     world_gen_chunk_mesh(world, chunk);
-    //     world.chunks[chunk.pos] = chunk;
-    // }
+    for (auto [pos, chunk] : world.chunks) {
+        world_gen_chunk_mesh(world, chunk);
+        world.chunks[chunk.pos] = chunk;
+    }
 
-    // for (auto [pos, chunk] : world.chunks) {
-    //     world_regen_chunk(world, chunk);
-    //     world.chunks[chunk.pos] = chunk;
-    // }
-
-    /* cells.emplace((vec2s){11, 11}); */
-    /* cells.emplace((vec2s){11, 12}); */
-    /* cells.emplace((vec2s){11, 13}); */
-    /* cells.emplace((vec2s){12, 11}); */
-    /* cells.emplace((vec2s){10, 12}); */
+    for (auto [pos, chunk] : world.chunks) {
+        world_regen_chunk(world, chunk);
+        world.chunks[chunk.pos] = chunk;
+    }
 
     /* text */
     /* testing */
@@ -490,8 +358,6 @@ SDL_AppResult SDL_AppInit(void **state, int argc, char *argv[])
     SDL_WarpMouseGlobal(scr_w / 2, scr_h / 2);
     SDL_HideCursor();
     mouse_hidden = true;
-
-    maze_gen();
 
     return SDL_APP_CONTINUE;
 }
@@ -538,9 +404,7 @@ SDL_AppResult SDL_AppIterate(void *state)
 
     /* threed_render_cube(cam.view_proj, cube_pos, cube_rot, cube_rot_axis, COL_WHITE, main_mat_tex_id); */
 
-    // world_render(world, cam);
-
-    maze_draw();
+    world_render(world, cam);
 
     if (!paused) {
     }
