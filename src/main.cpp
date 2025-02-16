@@ -73,6 +73,11 @@ static World world;
 u32 main_mat_tex_id;
 u32 dirt_tex_id;
 
+Dir_Light sun = {
+    .direction = {-1, -1, 1},
+    .ambient = {0.4f, 0.4f, 0.4f}, .diffuse = {0.6f, 0.6f, 0.6f}, .specular = {0.8f, 0.8f, 0.8f}
+};
+
 static const int point_light_num = 20;
 static Point_Light point_lights[point_light_num];
 static vec3s point_light_dirs[point_light_num];
@@ -100,10 +105,10 @@ void point_light_spawn()
     point_light.position = vec3_add(cam.pos, cam.forward);
     point_light.constant = 0.5f;
     point_light.linear = 0.09f;
-    point_light.quadratic = 0.052f;
-    point_light.ambient = { 0.2f, 0.2f, 0.2f };
-    point_light.diffuse = { 0.2f, 0.2f, 0.2f };
-    point_light.specular = { 0.2f, 0.2f, 0.2f };
+    point_light.quadratic = 0.062f;
+    point_light.ambient = { 0.3f, 0.3f, 0.3f };
+    point_light.diffuse = { 0.3f, 0.3f, 0.3f };
+    point_light.specular = { 0.3f, 0.3f, 0.3f };
     point_lights[point_light_idx] = point_light;
     point_light_in_use[point_light_idx] = true;
     point_light_idx = (point_light_idx + 1) % point_light_num;
@@ -123,6 +128,25 @@ void point_lights_render()
             continue;
         threed_render_cube(cam.view_proj, point_lights[i].position, 0, {0, 0, 0}, COL_WHITE, 0, 0);
     }
+}
+
+void dir_lights_update()
+{
+    i64 t;
+    SDL_GetCurrentTime(&t);
+    t = t % 10000000000000;
+    float tt = t / 1000000000.0f;
+    // tt = abs(sin(tt));
+    // printf("%f\n", tt);
+    // sun.ambient = { tt, tt, tt };
+    // sun.diffuse = { tt, tt, tt };
+    // sun.specular = { tt, tt, tt };
+}
+
+void dir_lights_render()
+{
+    render_clear_dir_lights();
+    render_add_dir_light(render_get_shader_default(), sun);
 }
 
 /* TEMP */
@@ -229,14 +253,10 @@ SDL_AppResult key_callback(SDL_KeyboardEvent kb_event)
             }
             break;
         case SDL_SCANCODE_PAGEUP:
-            rect.z += 5;
-            rect.w += 5;
-            circ.z += 5;
+            sun.direction.y += 0.2f;
             break;
         case SDL_SCANCODE_PAGEDOWN:
-            rect.z -= 5;
-            rect.w -= 5;
-            circ.z -= 5;
+            sun.direction.y -= 0.2f;
             break;
         case SDL_SCANCODE_SPACE:
             point_light_spawn();
@@ -336,8 +356,6 @@ SDL_AppResult SDL_AppInit(void **state, int argc, char *argv[])
 
     glEnable(GL_CULL_FACE);
     glFrontFace(GL_CW);
-
-    glEnable(GL_FRAMEBUFFER_SRGB);
 
     SDL_GetCurrentTime(&t_last_update);
     SDL_GetCurrentTime(&t_start);
@@ -443,6 +461,8 @@ SDL_AppResult SDL_AppIterate(void *state)
 
     point_lights_update();
     point_lights_render();
+    dir_lights_update();
+    dir_lights_render();
 
     world_render(world, cam);
 

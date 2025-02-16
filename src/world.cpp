@@ -85,6 +85,7 @@ void world_render(World& world, Camera& cam)
     // glUniform4fv(shader_col, 1, (float*)&c);
     // glUniform1i(shader_use_tex, true);
 
+    // glEnable(GL_FRAMEBUFFER_SRGB);
     render_set_camera(cam);
 
     for (auto [pos, chunk] : world.chunks) {
@@ -109,6 +110,8 @@ void world_render(World& world, Camera& cam)
         // glDrawElements(GL_TRIANGLES, chunk.mesh.triangles.size(), GL_UNSIGNED_INT, 0);
         // glBindVertexArray(0);
     }
+
+    // glDisable(GL_FRAMEBUFFER_SRGB);
 }
 
 void world_gen_chunk_mesh(World& world, Chunk& chunk)
@@ -201,11 +204,11 @@ void world_regen_chunk(World& world, Chunk& chunk)
     chunk.model.vertices = mesh.vertices.size();
     chunk.model.triangles = mesh.triangles.size();
     chunk.model.texture = main_tex_id;
-    chunk.model.material.ambient = {1, 1, 1};
-    chunk.model.material.diffuse = {1, 1, 1};
-    chunk.model.material.specular = {1, 1, 1};
-    chunk.model.material.shininess = 4.0f;
-    chunk.model.material.smoothness = 1.0f;
+    chunk.model.material.ambient = {0.0f, 0.0f, 0.0f};
+    chunk.model.material.diffuse = {0.0f, 0.0f, 0.0f};
+    chunk.model.material.specular = {0.5f, 0.5f, 0.5f};
+    chunk.model.material.shininess = 2.0f;
+    chunk.model.material.smoothness = 0.2f;
 }
 
 void world_init()
@@ -256,13 +259,6 @@ void world_init()
     for (int i = 0; i < VOX_NUM; ++i) {
         world_load_voxel_data((Voxel)i);
     }
-
-    Dir_Light sun = {
-        .direction = {-1, -1, 1},
-        .ambient = {0.35f, 0.35f, 0.35f}, .diffuse = {0.5f, 0.5f, 0.5f}, .specular = {0.4f, 0.4f, 0.4f}
-    };
-
-    render_add_dir_light(render_get_shader_default(), sun);
 }
 
 void world_load_voxel_data(Voxel vox)
