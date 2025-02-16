@@ -7,16 +7,15 @@ layout (location = 2) in vec3 in_normal;
 uniform mat4 modl;
 uniform mat4 view;
 uniform mat4 proj;
-uniform mat3 normal_matrix;
 
-out vec2 tex_coord;
-out vec3 world_coord;
-out vec3 normal;
+out vec2 frag_tex_coord;
+out vec3 frag_world_coord;
+out vec3 frag_normal;
 
 void main()
 {
     gl_Position = proj * view * modl * vec4(in_pos, 1);
-    tex_coord = in_tex_coord;
-    world_coord = vec3(modl * vec4(in_pos, 1));
-    normal = normal_matrix * in_normal;
+    frag_tex_coord = in_tex_coord;
+    frag_world_coord = vec3(modl * vec4(in_pos, 1));
+    frag_normal = mat3(transpose(inverse(modl))) * in_normal;  
 }

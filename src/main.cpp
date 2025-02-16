@@ -27,6 +27,7 @@
 #include <camera.h>
 #include <menu.h>
 #include <logging.h>
+#include <render.h>
 
 #include <iostream>
 #include <cstdio>
@@ -66,11 +67,63 @@ extern char **environ;
 static bool mouse_hidden = true;
 static Button btn;
 
-Camera cam;
+static Camera cam;
 static World world;
 
 u32 main_mat_tex_id;
 u32 dirt_tex_id;
+
+static const int point_light_num = 20;
+static Point_Light point_lights[point_light_num];
+static vec3s point_light_dirs[point_light_num];
+static bool point_light_in_use[point_light_num];
+static float point_light_ms = 1.0f;
+static float point_light_max_dist = 250;
+static int point_light_idx;
+
+void point_lights_update()
+{
+    for (int i = 0; i < point_light_num; ++i) {
+        if (!point_light_in_use[i])
+            continue;
+        point_lights[i].position = vec3_add(point_lights[i].position, vec3_scale(point_light_dirs[i], point_light_ms));
+        float dist = vec3_distance(point_lights[i].position, cam.pos);
+        if (dist > point_light_max_dist)
+            point_light_in_use[i] = false;
+    }
+}
+
+void point_light_spawn()
+{
+    Point_Light point_light;
+    point_light_dirs[point_light_idx] = cam.forward;
+    point_light.position = vec3_add(cam.pos, cam.forward);
+    point_light.constant = 0.5f;
+    point_light.linear = 0.09f;
+    point_light.quadratic = 0.052f;
+    point_light.ambient = { 0.2f, 0.2f, 0.2f };
+    point_light.diffuse = { 0.2f, 0.2f, 0.2f };
+    point_light.specular = { 0.2f, 0.2f, 0.2f };
+    point_lights[point_light_idx] = point_light;
+    point_light_in_use[point_light_idx] = true;
+    point_light_idx = (point_light_idx + 1) % point_light_num;
+
+}
+
+void point_lights_render()
+{
+    render_clear_point_lights();
+    for (int i = 0; i < point_light_num; ++i) {
+        if (!point_light_in_use[i])
+            continue;
+        render_add_point_light(render_get_shader_default(), point_lights[i]);
+    }
+    for (int i = 0; i < point_light_num; ++i) {
+        if (!point_light_in_use[i])
+            continue;
+        threed_render_cube(cam.view_proj, point_lights[i].position, 0, {0, 0, 0}, COL_WHITE, 0, 0);
+    }
+}
 
 /* TEMP */
 /* TEMP */
@@ -102,56 +155,33 @@ void poll_key()
     const bool *kcs = SDL_GetKeyboardState(&n);
 
     int ms = 4;
-    if (kcs[SDL_SCANCODE_UP]) {
-        rect.y = fmax(INT32_MIN, rect.y - ms);
-        /* cube_pos.y += 0.1f; */
+    if (kcs[SDL_SCANCODE_I]) {
     }
-    if (kcs[SDL_SCANCODE_DOWN]) {
-        rect.y = fmax(INT32_MIN, rect.y + ms);
-        /* cube_pos.y -= 0.1f; */
+    if (kcs[SDL_SCANCODE_K]) {
     }
-    if (kcs[SDL_SCANCODE_LEFT]) {
-        rect.x = fmax(INT32_MIN, rect.x - ms);
-        /* cube_pos.x -= 0.1f; */
+    if (kcs[SDL_SCANCODE_J]) {
     }
-    if (kcs[SDL_SCANCODE_RIGHT]) {
-        rect.x = fmax(INT32_MIN, rect.x + ms);
-        /* cube_pos.x += 0.1f; */
+    if (kcs[SDL_SCANCODE_L]) {
+    }
+    if (kcs[SDL_SCANCODE_U]) {
+    }
+    if (kcs[SDL_SCANCODE_O]) {
     }
     if (kcs[SDL_SCANCODE_R]) {
-        rect_angle = rect_angle + 0.10;
-        cube_rot += 0.1f;
     }
     if (kcs[SDL_SCANCODE_W]) {
-        circ.y = fmax(0, circ.y + ms);
-        rect.z++;
-        /* cube_pos.z -= 0.1f; */
-        /* printf("%f %f\n", circ.x, circ.y); */
     }
     if (kcs[SDL_SCANCODE_S]) {
-        circ.y = fmax(0, circ.y - ms);
-        rect.z--;
-        /* cube_pos.z += 0.1f; */
-        /* printf("%f %f\n", circ.x, circ.y); */
     }
     if (kcs[SDL_SCANCODE_A]) {
-        circ.x = fmax(0, circ.x - ms);
-        rect.w--;
-        /* printf("%f %f\n", circ.x, circ.y); */
     }
     if (kcs[SDL_SCANCODE_D]) {
-        circ.x = fmax(0, circ.x + ms);
-        rect.w++;
-        /* printf("%f %f\n", circ.x, circ.y); */
     }
     if (kcs[SDL_SCANCODE_R]) {
-        rect_angle = rect_angle + 0.10;
     }
     if (kcs[SDL_SCANCODE_N]) {
-        border_radius += 1;
     }
     if (kcs[SDL_SCANCODE_M]) {
-        border_radius -= 1;
     }
 }
 
@@ -182,7 +212,7 @@ SDL_AppResult key_callback(SDL_KeyboardEvent kb_event)
             printf("<ESC> pressed, exiting...\n");
             return SDL_APP_SUCCESS;
             break;
-        case SDL_SCANCODE_L:
+        case SDL_SCANCODE_H:
             if (mouse_hidden) {
                 SDL_ShowCursor();
                 /* bool succ = SDL_CaptureMouse(false); */
@@ -198,10 +228,6 @@ SDL_AppResult key_callback(SDL_KeyboardEvent kb_event)
                 mouse_hidden = !mouse_hidden;
             }
             break;
-        case SDL_SCANCODE_P:
-            glms_vec4_print(rect, stdout);
-            glms_vec3_print(circ, stdout);
-            break;
         case SDL_SCANCODE_PAGEUP:
             rect.z += 5;
             rect.w += 5;
@@ -213,6 +239,9 @@ SDL_AppResult key_callback(SDL_KeyboardEvent kb_event)
             circ.z -= 5;
             break;
         case SDL_SCANCODE_SPACE:
+            point_light_spawn();
+            break;
+        case SDL_SCANCODE_P:
             paused = !paused;
             printf("%s\n", (paused) ? "paused" : "unpaused");
             break;
@@ -302,6 +331,8 @@ SDL_AppResult SDL_AppInit(void **state, int argc, char *argv[])
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_CULL_FACE);
+    glFrontFace(GL_CW);
 
     SDL_GetCurrentTime(&t_last_update);
     SDL_GetCurrentTime(&t_start);
@@ -311,6 +342,7 @@ SDL_AppResult SDL_AppInit(void **state, int argc, char *argv[])
     camera_update_scr_dims(scr_w, scr_h);
     twod_init();
     threed_init();
+    render_init();
     world_init();
 
     int radius = 4;
@@ -350,9 +382,11 @@ SDL_AppResult SDL_AppInit(void **state, int argc, char *argv[])
     btn.on_click = pp;
 
     cam.up = {0, 1, 0};
-    cam.at = {0, 0, -10};
+    cam.at = {0, 10, -10};
     cam.pos = {0, 10, 10};
     cam.fov = 45;
+    cam.yaw = 0;
+    cam.pitch = 0;
     camera_update(cam);
 
     SDL_WarpMouseGlobal(scr_w / 2, scr_h / 2);
@@ -402,7 +436,8 @@ SDL_AppResult SDL_AppIterate(void *state)
     /* menu_button_update(btn, t_start, t_now, t_delta); */
     /* menu_button_render(btn, t_start, t_now, t_delta); */
 
-    /* threed_render_cube(cam.view_proj, cube_pos, cube_rot, cube_rot_axis, COL_WHITE, main_mat_tex_id); */
+    point_lights_update();
+    point_lights_render();
 
     world_render(world, cam);
 
@@ -413,7 +448,7 @@ SDL_AppResult SDL_AppIterate(void *state)
     vec3i cam_vox_pos = world_map_to_voxf(cam.pos);
 
     char fps_str[300];
-    sprintf(fps_str, "ft: %5.1fms (dt: %5.2fs)", t_avg / 1000000.0f, dt_ms / 1000.0f);
+    sprintf(fps_str, "ft: %5.1fms (fps: %2.1f | dt: %5.2fs)", t_avg / 1000000.0f, 1000.0f / (t_avg / 1000000.0f), dt_ms / 1000.0f);
     twod_draw_text(fps_str, strlen(fps_str), 10, 20, 0.3, COL_WHITE, 0);
     sprintf(fps_str, "cam: (%5.1f, %5.1f, %5.1f) at: (%5.1f, %5.1f, %5.1f) up: (%5.1f, %5.1f, %5.1f)",
             cam.pos.x, cam.pos.y, cam.pos.z,

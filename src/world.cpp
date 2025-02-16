@@ -80,10 +80,12 @@ void world_render(World& world, Camera& cam)
 {
     Color c = COL_WHITE;
 
-    glUseProgram(shader);
-    glBindTexture(GL_TEXTURE_2D, main_tex_id);
-    glUniform4fv(shader_col, 1, (float*)&c);
-    glUniform1i(shader_use_tex, true);
+    // glUseProgram(shader);
+    // glBindTexture(GL_TEXTURE_2D, main_tex_id);
+    // glUniform4fv(shader_col, 1, (float*)&c);
+    // glUniform1i(shader_use_tex, true);
+
+    render_set_camera(cam);
 
     for (auto [pos, chunk] : world.chunks) {
         float rotation = 0;
@@ -92,7 +94,7 @@ void world_render(World& world, Camera& cam)
         vec4s tint = {1, 1, 1, 1};
         vec3s chunk_pos_in_vox = {(float)pos.x * CHUNK_SIZE, (float)pos.y * CHUNK_SIZE, (float)pos.z * CHUNK_SIZE};
 
-        render(cam, chunk.model, chunk_pos_in_vox, scale, rotation, rot_axis, tint, false);
+        render(chunk.model, chunk_pos_in_vox, scale, rotation, rot_axis, tint, false);
 
         // mat4s mvp = GLMS_MAT4_IDENTITY;
         // mvp = mat4_mul(mvp, cam.view_proj);
@@ -202,7 +204,8 @@ void world_regen_chunk(World& world, Chunk& chunk)
     chunk.model.material.ambient = {1, 1, 1};
     chunk.model.material.diffuse = {1, 1, 1};
     chunk.model.material.specular = {1, 1, 1};
-    chunk.model.material.smoothness = 0.1f;
+    chunk.model.material.shininess = 4.0f;
+    chunk.model.material.smoothness = 1.0f;
 }
 
 void world_init()
@@ -254,13 +257,12 @@ void world_init()
         world_load_voxel_data((Voxel)i);
     }
 
-    Light sun = {
-        .ambient = {1, 1, 1}, .diffuse = {1, 1, 1}, .specular = {1, 1, 1},
-        .position = {0, 1000, 1000}, .direction {0, -1, -1}, .attenuation = 0
+    Dir_Light sun = {
+        .direction = {-1, -1, 1},
+        .ambient = {0.35f, 0.35f, 0.35f}, .diffuse = {0.5f, 0.5f, 0.5f}, .specular = {0.4f, 0.4f, 0.4f}
     };
 
-    render_init();
-    render_add_lights(&sun, 1);
+    render_add_dir_light(render_get_shader_default(), sun);
 }
 
 void world_load_voxel_data(Voxel vox)

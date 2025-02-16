@@ -456,13 +456,13 @@ void twod_draw_text(const char* txt, u32 txt_len, float x, float y, float scale,
         float h = glyphs[c].sz.y * scale;
 
         float vs[6][4] = {
-            { x_off,     y_off + h,   0.0f, 0.0f },
+            { x_off + w, y_off,       1.0f, 1.0f },
             { x_off,     y_off,       0.0f, 1.0f },
-            { x_off + w, y_off,       1.0f, 1.0f },
-
             { x_off,     y_off + h,   0.0f, 0.0f },
+
+            { x_off + w, y_off + h,   1.0f, 0.0f },
             { x_off + w, y_off,       1.0f, 1.0f },
-            { x_off + w, y_off + h,   1.0f, 0.0f }
+            { x_off,     y_off + h,   0.0f, 0.0f },
         };
 
         for (int i = 0; i < 6; ++i) {
