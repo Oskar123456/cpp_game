@@ -132,15 +132,6 @@ void point_lights_render()
 
 void dir_lights_update()
 {
-    i64 t;
-    SDL_GetCurrentTime(&t);
-    t = t % 10000000000000;
-    float tt = t / 1000000000.0f;
-    // tt = abs(sin(tt));
-    // printf("%f\n", tt);
-    // sun.ambient = { tt, tt, tt };
-    // sun.diffuse = { tt, tt, tt };
-    // sun.specular = { tt, tt, tt };
 }
 
 void dir_lights_render()
@@ -368,28 +359,9 @@ SDL_AppResult SDL_AppInit(void **state, int argc, char *argv[])
     render_init();
     world_init();
 
-    int radius = 4;
-    for (int x = 0; x < radius; ++x) {
-        for (int y = -sqrt(sqrt(radius)); y <= sqrt(sqrt(radius)); ++y) {
-            for (int z = 0; z < radius; ++z) {
-                world_gen_chunk(world, {x, y, z});
-            }
-        }
-    }
-
-    for (auto [pos, chunk] : world.chunks) {
-        world_gen_chunk_mesh(world, chunk);
-        world.chunks[chunk.pos] = chunk;
-    }
-
-    for (auto [pos, chunk] : world.chunks) {
-        world_regen_chunk(world, chunk);
-        world.chunks[chunk.pos] = chunk;
-    }
-
     /* text */
     /* testing */
-    /* twod_create_tex("/home/oskar/Documents/cpp_game/resources/textures/minecraft_grass_side.jpg", "dirt"); */
+    twod_create_tex("/home/oskar/Documents/cpp_game/resources/textures/minecraft_grass_side.jpg", "dirt");
     /* dirt_tex_id = threed_create_tex("/home/oskar/Documents/cpp_game/resources/textures/minecraft_grass_side.jpg", "dirt"); */
     main_mat_tex_id = threed_create_tex("/home/oskar/Documents/cpp_game/resources/textures/spritesheet_tiles_10x10.png", "main_mat", GL_RGBA);
     // twod_create_tex("/home/oskar/Documents/cpp_game/resources/textures/minecraft_snow_top.jpg", "snow");
@@ -455,9 +427,8 @@ SDL_AppResult SDL_AppIterate(void *state)
     btn.width = rect.z * 4;
     btn.height = rect.w;
 
-    /* twod_draw_rectf_rounded(rect.x, rect.y, rect.z, rect.w, border_radius, COL_WHITE, "dirt", rect_angle); */
-    /* menu_button_update(btn, t_start, t_now, t_delta); */
-    /* menu_button_render(btn, t_start, t_now, t_delta); */
+    // menu_button_update(btn, t_start, t_now, t_delta);
+    // menu_button_render(btn, t_start, t_now, t_delta);
 
     point_lights_update();
     point_lights_render();
@@ -471,6 +442,20 @@ SDL_AppResult SDL_AppIterate(void *state)
 
     vec3i cam_chunk_pos = world_map_to_chunkf(cam.pos);
     vec3i cam_vox_pos = world_map_to_voxf(cam.pos);
+
+    int radius = 2;
+    for (int x = -radius; x < radius; ++x) {
+        for (int y = -sqrt(sqrt(radius)); y <= sqrt(sqrt(radius)); ++y) {
+            for (int z = -radius; z < radius; ++z) {
+                vec3i p = {x + cam_chunk_pos.x, y + cam_chunk_pos.y, z + cam_chunk_pos.z};
+                if (world.chunks.count(p))
+                    continue;
+                world_gen_chunk(world, p);
+                world_gen_chunk_mesh(world, world.chunks[p]);
+                world_regen_chunk(world, world.chunks[p]);
+            }
+        }
+    }
 
     char fps_str[300];
     sprintf(fps_str, "ft: %5.1fms (fps: %2.1f | dt: %5.2fs)", t_avg / 1000000.0f, 1000.0f / (t_avg / 1000000.0f), dt_ms / 1000.0f);
@@ -490,6 +475,8 @@ SDL_AppResult SDL_AppIterate(void *state)
     twod_draw_text(fps_str, strlen(fps_str), 10, 95, 0.3, COL_WHITE, 0);
     sprintf(fps_str, "cube: (%5.1f, %5.1f, %5.1f)", cube_pos.x, cube_pos.y, cube_pos.z);
     twod_draw_text(fps_str, strlen(fps_str), 10, 120, 0.3, COL_WHITE, 0);
+
+    twod_draw_rectf_rounded(scr_w - 50, 50, 50, 50, 100, COL_WHITE, "dirt", -90);
 
     SDL_GL_SwapWindow(as->window);
 

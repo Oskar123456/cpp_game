@@ -47,6 +47,9 @@ static u32 shader_use_tex;
 
 void world_gen_chunk(World& world, vec3i pos)
 {
+    if (world.chunks.count(pos))
+        return;
+
     Chunk chunk = { .pos = pos, .world_pos = {pos.x * CHUNK_SIZE, pos.y * CHUNK_SIZE, pos.z * CHUNK_SIZE} };
     for (int x = 0; x < CHUNK_SIZE; ++x) {
         for (int z = 0; z < CHUNK_SIZE; ++z) {

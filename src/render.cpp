@@ -169,39 +169,6 @@ void render_init()
     render_clear_dir_lights();
     render_clear_point_lights();
     render_clear_spot_lights();
-
-    // for (int i = 0; i < shader_default3D_lights_max; ++i) {
-    //     string ambi = "lights[" + to_string(i) + "].ambient";
-    //     string diff = "lights[" + to_string(i) + "].diffuse";
-    //     string spec = "lights[" + to_string(i) + "].specular";
-    //     string pos  = "lights[" + to_string(i) + "].position";
-    //     string dir  = "lights[" + to_string(i) + "].direction";
-    //     string att  = "lights[" + to_string(i) + "].attenuation";
-    //     shader_default3D_lights[i].ambient = glGetUniformLocation(shader_default3D, ambi.c_str());
-    //     shader_default3D_lights[i].diffuse = glGetUniformLocation(shader_default3D, diff.c_str());
-    //     shader_default3D_lights[i].specular = glGetUniformLocation(shader_default3D, spec.c_str());
-    //     shader_default3D_lights[i].position = glGetUniformLocation(shader_default3D, pos.c_str());
-    //     shader_default3D_lights[i].direction = glGetUniformLocation(shader_default3D, dir.c_str());
-    //     shader_default3D_lights[i].attenuation = glGetUniformLocation(shader_default3D, att.c_str());
-    //     printf("%d, %d, %d, %d, %d, %d\n",
-    //             shader_default3D_lights[i].ambient,
-    //             shader_default3D_lights[i].diffuse,
-    //             shader_default3D_lights[i].specular,
-    //             shader_default3D_lights[i].position,
-    //             shader_default3D_lights[i].direction,
-    //             shader_default3D_lights[i].attenuation);
-    // }
-
-    // GLenum e;
-    // while ((e = glGetError()) != GL_NO_ERROR) {
-    //     printf("%d\n", e);
-    // }
-
-    // printf("%d, %d, %d, %d, %d, %d, %d, %d, %d, %d\n", shader_default3D, shader_default3D_modl,
-    //         shader_default3D_view, shader_default3D_proj, shader_default3D_normal_matrix,
-    //         shader_default3D_tint, shader_default3D_use_tex,
-    //         shader_default3D_material.ambient, shader_default3D_material.diffuse,
-    //         shader_default3D_material.specular, shader_default3D_material.smoothness);
 }
 
 void render_set_camera(Camera& cam)
