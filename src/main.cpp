@@ -328,11 +328,16 @@ SDL_AppResult SDL_AppInit(void **state, int argc, char *argv[])
     glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST );
     glEnable(GL_LINE_SMOOTH);
     glEnable(GL_POLYGON_SMOOTH);
+
     glEnable(GL_DEPTH_TEST);
+
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
     glEnable(GL_CULL_FACE);
     glFrontFace(GL_CW);
+
+    glEnable(GL_FRAMEBUFFER_SRGB);
 
     SDL_GetCurrentTime(&t_last_update);
     SDL_GetCurrentTime(&t_start);
